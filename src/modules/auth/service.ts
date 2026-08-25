@@ -1,6 +1,7 @@
 import type { RoleName } from '@prisma/client';
 import { env } from '../../config/env.js';
 import { badRequest, forbidden, unauthorized } from '../../common/errors/http-error.js';
+import { recordAudit } from '../../common/audit/record-audit.js';
 import { hashPassword, verifyPassword } from '../../common/security/password.js';
 import {
   createAccessToken,
@@ -62,6 +63,16 @@ export class AuthService {
         connect: {
           id: user.id
         }
+      }
+    });
+
+    void recordAudit({
+      actorUserId: user.id,
+      action: 'LOGIN',
+      resource: 'auth',
+      resourceId: user.id,
+      metadata: {
+        role: user.role
       }
     });
 
@@ -143,12 +154,27 @@ export class AuthService {
     const stored = await this.repository.findRefreshTokenByHash(hashedToken);
     if (stored && !stored.revokedAt) {
       await this.repository.revokeRefreshTokenByHash(hashedToken);
+      void recordAudit({
+        actorUserId: stored.userId,
+        action: 'LOGOUT',
+        resource: 'auth',
+        resourceId: stored.userId
+      });
     }
     return { loggedOut: true };
   }
 
   async logoutAll(userId: string) {
     await this.repository.revokeRefreshTokensForUser(userId);
+    void recordAudit({
+      actorUserId: userId,
+      action: 'LOGOUT',
+      resource: 'auth',
+      resourceId: userId,
+      metadata: {
+        scope: 'all-sessions'
+      }
+    });
     return { loggedOut: true };
   }
 
@@ -180,6 +206,16 @@ export class AuthService {
       requestedUserAgent: input.userAgent
     });
 
+    void recordAudit({
+      actorUserId: user.id,
+      action: 'RESET_PASSWORD',
+      resource: 'auth',
+      resourceId: user.id,
+      metadata: {
+        phase: 'requested'
+      }
+    });
+
     return {
       resetRequested: true,
       resetToken: env.NODE_ENV === 'production' ? undefined : token
@@ -200,6 +236,15 @@ export class AuthService {
     });
     await this.repository.markResetTokenUsed(stored.id);
     await this.repository.revokeRefreshTokensForUser(stored.userId);
+    void recordAudit({
+      actorUserId: stored.userId,
+      action: 'RESET_PASSWORD',
+      resource: 'auth',
+      resourceId: stored.userId,
+      metadata: {
+        phase: 'completed'
+      }
+    });
 
     return { reset: true };
   }
@@ -219,6 +264,12 @@ export class AuthService {
       passwordHash: await hashPassword(input.newPassword)
     });
     await this.repository.revokeRefreshTokensForUser(userId);
+    void recordAudit({
+      actorUserId: userId,
+      action: 'UPDATE',
+      resource: 'password',
+      resourceId: userId
+    });
     return { changed: true };
   }
 

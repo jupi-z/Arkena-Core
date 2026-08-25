@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { badRequest, notFound } from '../../common/errors/http-error.js';
+import { recordAudit } from '../../common/audit/record-audit.js';
 import { offsetFromPage } from '../../common/http/query.js';
 import { AttendanceRepository } from './repository.js';
 
@@ -71,7 +72,7 @@ export class AttendanceService {
       throw badRequest('Attendance record already exists for that employee and date');
     }
 
-    return this.repository.create({
+    const created = await this.repository.create({
       employee: {
         connect: {
           id: input.employeeId
@@ -86,6 +87,15 @@ export class AttendanceService {
       source: input.source,
       recordedByUser: userId ? { connect: { id: userId } } : undefined
     });
+
+    void recordAudit({
+      actorUserId: userId,
+      action: 'CREATE',
+      resource: 'attendance',
+      resourceId: created.id
+    });
+
+    return created;
   }
 
   async update(id: string, input: Record<string, unknown>) {
@@ -105,12 +115,24 @@ export class AttendanceService {
       throw notFound('Attendance record not found');
     }
 
-    return this.repository.update(id, data);
+    const updated = await this.repository.update(id, data);
+    void recordAudit({
+      action: 'UPDATE',
+      resource: 'attendance',
+      resourceId: id
+    });
+    return updated;
   }
 
   async remove(id: string) {
     await this.getById(id);
-    return this.repository.remove(id);
+    const removed = await this.repository.remove(id);
+    void recordAudit({
+      action: 'DELETE',
+      resource: 'attendance',
+      resourceId: id
+    });
+    return removed;
   }
 
   async summary(filters: { departmentId?: string; employeeId?: string; from?: string; to?: string }) {

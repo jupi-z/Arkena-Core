@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { notFound } from '../../common/errors/http-error.js';
+import { recordAudit } from '../../common/audit/record-audit.js';
 import { offsetFromPage } from '../../common/http/query.js';
 import { EmployeesRepository } from './repository.js';
 
@@ -43,7 +44,7 @@ export class EmployeesService {
     return employee;
   }
 
-  create(input: {
+  async create(input: {
     employeeNumber: string;
     firstName: string;
     lastName: string;
@@ -57,7 +58,7 @@ export class EmployeesService {
     userId?: string | null;
     notes?: string | null;
   }) {
-    return this.repository.create({
+    const created = await this.repository.create({
       employeeNumber: input.employeeNumber,
       firstName: input.firstName,
       lastName: input.lastName,
@@ -71,6 +72,18 @@ export class EmployeesService {
       manager: input.managerId ? { connect: { id: input.managerId } } : undefined,
       user: input.userId ? { connect: { id: input.userId } } : undefined
     });
+
+    void recordAudit({
+      actorUserId: input.userId ?? undefined,
+      action: 'CREATE',
+      resource: 'employee',
+      resourceId: created.id,
+      metadata: {
+        employeeNumber: created.employeeNumber
+      }
+    });
+
+    return created;
   }
 
   async update(id: string, input: Record<string, unknown>) {
@@ -92,11 +105,26 @@ export class EmployeesService {
     if (typeof input.userId === 'string') data.user = { connect: { id: input.userId } };
     if (input.userId === null) data.user = { disconnect: true };
 
-    return this.repository.update(id, data);
+    const updated = await this.repository.update(id, data);
+    void recordAudit({
+      action: 'UPDATE',
+      resource: 'employee',
+      resourceId: id
+    });
+    return updated;
   }
 
   async archive(id: string, archivedAt?: string) {
     await this.getById(id);
-    return this.repository.archive(id, archivedAt ? new Date(archivedAt) : new Date());
+    const archived = await this.repository.archive(id, archivedAt ? new Date(archivedAt) : new Date());
+    void recordAudit({
+      action: 'DELETE',
+      resource: 'employee',
+      resourceId: id,
+      metadata: {
+        archived: true
+      }
+    });
+    return archived;
   }
 }

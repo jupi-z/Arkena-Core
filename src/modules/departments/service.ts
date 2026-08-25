@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { notFound } from '../../common/errors/http-error.js';
+import { recordAudit } from '../../common/audit/record-audit.js';
 import { offsetFromPage } from '../../common/http/query.js';
 import { DepartmentsRepository } from './repository.js';
 
@@ -31,17 +32,35 @@ export class DepartmentsService {
     return department;
   }
 
-  create(input: { code: string; name: string; description?: string | null; managerEmployeeId?: string | null }) {
-    return this.repository.create(input);
+  async create(input: { code: string; name: string; description?: string | null; managerEmployeeId?: string | null }) {
+    const created = await this.repository.create(input);
+    void recordAudit({
+      action: 'CREATE',
+      resource: 'department',
+      resourceId: created.id
+    });
+    return created;
   }
 
   async update(id: string, input: { name?: string; description?: string | null; managerEmployeeId?: string | null }) {
     await this.getById(id);
-    return this.repository.update(id, input);
+    const updated = await this.repository.update(id, input);
+    void recordAudit({
+      action: 'UPDATE',
+      resource: 'department',
+      resourceId: id
+    });
+    return updated;
   }
 
   async remove(id: string) {
     await this.getById(id);
-    return this.repository.remove(id);
+    const removed = await this.repository.remove(id);
+    void recordAudit({
+      action: 'DELETE',
+      resource: 'department',
+      resourceId: id
+    });
+    return removed;
   }
 }

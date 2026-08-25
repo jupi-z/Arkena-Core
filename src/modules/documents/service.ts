@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import { Prisma, RoleName } from '@prisma/client';
 import { env } from '../../config/env.js';
 import { forbidden, notFound, badRequest } from '../../common/errors/http-error.js';
+import { recordAudit } from '../../common/audit/record-audit.js';
 import { offsetFromPage } from '../../common/http/query.js';
 import { DocumentsRepository } from './repository.js';
 
@@ -90,7 +91,7 @@ export class DocumentsService {
     const fileBuffer = await fs.readFile(finalPath);
     checksum.update(fileBuffer);
 
-    return this.repository.create({
+    const created = await this.repository.create({
       employee: {
         connect: {
           id: metadata.employeeId
@@ -111,6 +112,19 @@ export class DocumentsService {
       checksum: checksum.digest('hex'),
       accessLevel: 'PRIVATE'
     });
+
+    void recordAudit({
+      actorUserId: user.userId,
+      action: 'UPLOAD',
+      resource: 'document',
+      resourceId: created.id,
+      metadata: {
+        type: metadata.type,
+        storageKey: created.storageKey
+      }
+    });
+
+    return created;
   }
 
   async download(user: { userId: string; role: RoleName; employeeId?: string | null; departmentId?: string | null }, id: string) {
@@ -141,8 +155,16 @@ export class DocumentsService {
 
     const filePath = path.resolve(env.UPLOAD_DIR, document.storageKey);
     await fs.unlink(filePath).catch(() => undefined);
-    return this.repository.update(id, {
+    const removed = await this.repository.update(id, {
       deletedAt: new Date()
     });
+
+    void recordAudit({
+      actorUserId: user.userId,
+      action: 'DELETE',
+      resource: 'document',
+      resourceId: id
+    });
+    return removed;
   }
 }

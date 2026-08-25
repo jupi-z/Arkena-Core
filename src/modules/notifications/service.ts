@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { notFound } from '../../common/errors/http-error.js';
+import { recordAudit } from '../../common/audit/record-audit.js';
 import { offsetFromPage } from '../../common/http/query.js';
 import { NotificationsRepository } from './repository.js';
 
@@ -20,7 +21,7 @@ export class NotificationsService {
     return { items, total };
   }
 
-  create(input: {
+  async create(input: {
     recipientUserId: string;
     type: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR' | 'SYSTEM';
     title: string;
@@ -30,7 +31,7 @@ export class NotificationsService {
     metadata?: Record<string, unknown>;
     createdByUserId?: string;
   }) {
-    return this.repository.create({
+    const created = await this.repository.create({
       recipientUser: {
         connect: {
           id: input.recipientUserId
@@ -44,9 +45,27 @@ export class NotificationsService {
       resourceId: input.resourceId ?? undefined,
       metadata: input.metadata as Prisma.InputJsonValue | undefined
     });
+
+    void recordAudit({
+      actorUserId: input.createdByUserId,
+      action: 'CREATE',
+      resource: 'notification',
+      resourceId: created.id
+    });
+
+    return created;
   }
 
   async markRead(id: string) {
-    return this.repository.markRead(id);
+    const updated = await this.repository.markRead(id);
+    void recordAudit({
+      action: 'UPDATE',
+      resource: 'notification',
+      resourceId: id,
+      metadata: {
+        read: true
+      }
+    });
+    return updated;
   }
 }
