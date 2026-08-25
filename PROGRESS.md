@@ -4,8 +4,8 @@ Last updated: 2026-08-25
 
 ## Global Progress
 
-- Overall system progress: **92%**
-- Current active workstream: **Docker/runtime polish and integration hardening**
+- Overall system progress: **95%**
+- Current active workstream: **CI and OpenAPI hardening**
 - Current task progress: **100%**
 
 ## What Is Done
@@ -17,14 +17,16 @@ Last updated: 2026-08-25
 - RBAC permissions model implemented
 - Core modules created: users, employees, departments, attendance, documents, notifications, audit, dashboard
 - OpenAPI docs published at `/docs`
+- OpenAPI spec expanded with reusable schemas and endpoint coverage for the core API
 - Unit tests passing
 - Local runtime boot proven on a free port
 - Docker Compose boot proven on a free host port with live `/health` response
+- GitHub Actions CI added for build, tests, and Docker Compose smoke validation
 
 ## What Remains
 
-- Endpoint-by-endpoint OpenAPI expansion
 - Optional extra end-to-end HTTP coverage
+- Final polish on any edge-case OpenAPI examples
 
 ## Validation
 
