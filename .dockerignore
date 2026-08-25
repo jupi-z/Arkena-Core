@@ -1,0 +1,16 @@
+.git
+.gitignore
+node_modules
+dist
+coverage
+uploads
+.env
+.env.*
+*.log
+README.md
+ARCHITECTURE.md
+SECURITY.md
+CONTRIBUTING.md
+PROGRESS.md
+tests
+*.md

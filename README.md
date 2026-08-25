@@ -104,10 +104,14 @@ Each module follows the same split:
 docker compose up
 ```
 
+The Compose stack ships with safe development defaults for local boot, so it can start even before you customize secrets. Replace them before any production use.
+
 The API will be available at:
 
 - `http://localhost:3000`
 - `http://localhost:3000/docs`
+
+If port `3000` is already in use on your machine, set `API_PORT` in `.env` to another host port, for example `3002`. The container still listens on `3000`.
 
 Progress tracking for the current implementation lives in [PROGRESS.md](C:/Users/Ameno%20MonarQue/Documents/ChatGPT/Arkena%20Core/PROGRESS.md).
 

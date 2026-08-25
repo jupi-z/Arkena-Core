@@ -3,16 +3,17 @@ WORKDIR /app
 
 FROM base AS deps
 COPY package.json package-lock.json* ./
-RUN npm install
+RUN npm ci
 
 FROM deps AS build
+ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
 COPY . .
 RUN npx prisma generate && npm run build
 
 FROM base AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 COPY package.json ./

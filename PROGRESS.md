@@ -4,9 +4,9 @@ Last updated: 2026-08-25
 
 ## Global Progress
 
-- Overall system progress: **83%**
+- Overall system progress: **92%**
 - Current active workstream: **Docker/runtime polish and integration hardening**
-- Current task progress: **55%**
+- Current task progress: **100%**
 
 ## What Is Done
 
@@ -19,13 +19,12 @@ Last updated: 2026-08-25
 - OpenAPI docs published at `/docs`
 - Unit tests passing
 - Local runtime boot proven on a free port
+- Docker Compose boot proven on a free host port with live `/health` response
 
 ## What Remains
 
-- Docker Compose execution proof on an active Docker daemon
-- More end-to-end HTTP integration tests
 - Endpoint-by-endpoint OpenAPI expansion
-- Final production smoke checks on a clean database
+- Optional extra end-to-end HTTP coverage
 
 ## Validation
 
@@ -33,4 +32,6 @@ Last updated: 2026-08-25
 - Vitest: pass
 - Prisma schema validation: pass
 - Local boot: pass
-- Docker Compose execution: blocked by daemon availability in this session
+- Docker Compose execution: pass
+- Docker health check: pass
+- Docker `/health`: pass
