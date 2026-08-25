@@ -4,8 +4,8 @@ Last updated: 2026-08-25
 
 ## Global Progress
 
-- Overall system progress: **97%**
-- Current active workstream: **Auth coverage and release polish**
+- Overall system progress: **98%**
+- Current active workstream: **Release polish and final evidence**
 - Current task progress: **100%**
 
 ## What Is Done
@@ -19,7 +19,7 @@ Last updated: 2026-08-25
 - OpenAPI docs published at `/docs`
 - OpenAPI spec expanded with reusable schemas and endpoint coverage for the core API
 - Unit tests passing
-- Auth service coverage expanded for logout, logout-all, reset flow, forgot-password, and profile retrieval
+- Auth and core service coverage expanded for logout, logout-all, reset flow, forgot-password, profile retrieval, attendance summary, and secure document upload
 - Local runtime boot proven on a free port
 - Docker Compose boot proven on a free host port with live `/health` response
 - GitHub Actions CI added for build, tests, and Docker Compose smoke validation

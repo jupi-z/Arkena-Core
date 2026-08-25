@@ -4,6 +4,7 @@ dist
 .DS_Store
 coverage
 uploads
+uploads-test
 *.log
 prisma/dev.db
 *.sqlite
