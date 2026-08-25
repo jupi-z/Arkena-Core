@@ -109,6 +109,8 @@ The API will be available at:
 - `http://localhost:3000`
 - `http://localhost:3000/docs`
 
+Progress tracking for the current implementation lives in [PROGRESS.md](C:/Users/Ameno%20MonarQue/Documents/ChatGPT/Arkena%20Core/PROGRESS.md).
+
 ## Environment Variables
 
 Key variables:
