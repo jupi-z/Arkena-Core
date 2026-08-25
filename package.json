@@ -11,6 +11,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/src/server.js",
     "test": "vitest run",
+    "test:e2e": "vitest run tests/release.e2e.test.ts",
     "test:watch": "vitest",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",

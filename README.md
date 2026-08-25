@@ -104,7 +104,7 @@ Each module follows the same split:
 docker compose up
 ```
 
-The Compose stack ships with safe development defaults for local boot, so it can start even before you customize secrets. Replace them before any production use.
+The Compose stack runs Prisma migrations and the demo seed automatically, and ships with safe development defaults for local boot. Replace them before any production use.
 
 The API will be available at:
 
@@ -151,6 +151,12 @@ npm test
 ```
 
 The project is set up for unit and integration tests using Vitest and Supertest.
+
+For the release smoke flow against a live API, run:
+
+```bash
+RUN_RELEASE_E2E=true E2E_BASE_URL=http://127.0.0.1:3000 npm run test:e2e
+```
 
 ## API Docs
 

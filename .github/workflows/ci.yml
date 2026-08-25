@@ -63,6 +63,12 @@ jobs:
       - name: Verify docs
         run: curl -fsS http://127.0.0.1:3000/docs/ > /dev/null
 
+      - name: Run release E2E
+        run: npm run test:e2e
+        env:
+          RUN_RELEASE_E2E: true
+          E2E_BASE_URL: http://127.0.0.1:3000
+
       - name: Shutdown stack
         if: always()
         run: docker compose down -v

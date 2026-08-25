@@ -4,8 +4,8 @@ Last updated: 2026-08-25
 
 ## Global Progress
 
-- Overall system progress: **98%**
-- Current active workstream: **Release polish and final evidence**
+- Overall system progress: **100%**
+- Current active workstream: **Complete**
 - Current task progress: **100%**
 
 ## What Is Done
@@ -23,11 +23,11 @@ Last updated: 2026-08-25
 - Local runtime boot proven on a free port
 - Docker Compose boot proven on a free host port with live `/health` response
 - GitHub Actions CI added for build, tests, and Docker Compose smoke validation
+- Release smoke test now validates live auth bootstrap, refresh rotation, RBAC, attendance summary, dashboard, and secure document lifecycle
 
 ## What Remains
 
-- Optional extra end-to-end HTTP coverage
-- Final polish on any edge-case OpenAPI examples
+- Optional future enhancements outside the initial scope
 
 ## Validation
 
@@ -38,3 +38,4 @@ Last updated: 2026-08-25
 - Docker Compose execution: pass
 - Docker health check: pass
 - Docker `/health`: pass
+- Live release smoke: pass

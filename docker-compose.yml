@@ -28,7 +28,7 @@ services:
       JWT_REFRESH_SECRET: dev-refresh-secret-arkena-core-0123456789
       JWT_RESET_SECRET: dev-reset-secret-arkena-core-0123456789
       DEFAULT_SUPER_ADMIN_EMAIL: admin@arkena.local
-      DEFAULT_SUPER_ADMIN_PASSWORD: ChangeMe123!ChangeMe123!
+      DEFAULT_SUPER_ADMIN_PASSWORD: ChangeMe123!
       DEFAULT_SUPER_ADMIN_FIRST_NAME: Super
       DEFAULT_SUPER_ADMIN_LAST_NAME: Admin
       DEFAULT_SUPER_ADMIN_PHONE: +0000000000

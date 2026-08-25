@@ -13,10 +13,20 @@ export function validateRequest(schema: RequestSchema): RequestHandler {
       req.body = schema.body.parse(req.body);
     }
     if (schema.query) {
-      req.query = schema.query.parse(req.query);
+      Object.defineProperty(req, 'query', {
+        value: schema.query.parse(req.query),
+        configurable: true,
+        enumerable: true,
+        writable: true
+      });
     }
     if (schema.params) {
-      req.params = schema.params.parse(req.params);
+      Object.defineProperty(req, 'params', {
+        value: schema.params.parse(req.params),
+        configurable: true,
+        enumerable: true,
+        writable: true
+      });
     }
 
     next();
