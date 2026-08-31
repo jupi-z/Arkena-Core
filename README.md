@@ -107,7 +107,7 @@ Each module follows the same split:
 docker compose up
 ```
 
-The Compose stack runs Prisma migrations and the demo seed automatically, and ships with safe development defaults for local boot. Replace them before any production use.
+The local Compose stack runs Prisma migrations and the demo seed automatically, and ships with safe development defaults for local boot. Replace them before any production use.
 
 The API will be available at:
 
@@ -147,6 +147,15 @@ Key variables:
 - `READINESS_DB_TIMEOUT_MS`
 - `UPLOAD_DIR`
 - `MAX_FILE_SIZE_BYTES`
+
+Production supports Docker-style secret file variables for sensitive values:
+
+- `DATABASE_URL_FILE`
+- `JWT_ACCESS_SECRET_FILE`
+- `JWT_REFRESH_SECRET_FILE`
+- `JWT_RESET_SECRET_FILE`
+- `METRICS_BEARER_TOKEN_FILE`
+- `DEFAULT_SUPER_ADMIN_PASSWORD_FILE`
 
 ## Migrations
 
@@ -197,6 +206,24 @@ http://localhost:3000/metrics
 ## Operations
 
 Operational runbooks are documented in [OPERATIONS.md](C:/Users/Ameno%20MonarQue/Documents/ChatGPT/Arkena%20Core/OPERATIONS.md). They cover deployment checks, backup/restore, secret rotation, observability and incident response.
+
+Deployment profiles are documented in [DEPLOYMENT.md](C:/Users/Ameno%20MonarQue/Documents/ChatGPT/Arkena%20Core/DEPLOYMENT.md):
+
+- local demo: `docker compose up -d --build`
+- staging: `docker compose --env-file .env -f deploy/docker-compose.staging.yml up -d --build`
+- production: `docker compose --env-file .env -f deploy/docker-compose.prod.yml up -d`
+- observability: add `-f deploy/docker-compose.observability.yml`
+
+Useful operational scripts:
+
+```bash
+npm run ops:validate-env
+npm run test:load
+scripts/backup-postgres.sh
+ALLOW_RESTORE=true scripts/restore-postgres.sh ./backups/arkena_core.dump
+./scripts/backup-postgres.ps1
+$env:ALLOW_RESTORE='true'; ./scripts/restore-postgres.ps1 ./backups/arkena_core.dump
+```
 
 ## Demo Accounts
 

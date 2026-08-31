@@ -22,7 +22,7 @@ services:
     env_file:
       - .env
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       DATABASE_URL: postgresql://postgres:postgres@db:5432/arkena_core?schema=public
       PORT: 3000
       SERVICE_NAME: Arkena Core

@@ -5,8 +5,8 @@ Last updated: 2026-09-01
 ## Global Progress
 
 - Scope completion: **100%**
-- Production readiness: **85%**
-- Current active workstream: **Observability and operations hardening completed**
+- Production readiness: **95%**
+- Current active workstream: **Production operations package completed**
 - Current task progress: **100%**
 
 ## What Is Done
@@ -28,14 +28,21 @@ Last updated: 2026-09-01
 - Runtime hardening added: structured request ids, graceful shutdown, liveness/readiness probes, configurable rate limits and non-root Docker runtime
 - Prometheus-compatible `/metrics` endpoint added with optional bearer-token protection
 - Production operations runbook added for release checks, health checks, metrics, logs, backup, restore, secret rotation, incidents and load testing
+- Prometheus and Grafana Compose overlay added with provisioned dashboard
+- Staging and production Compose manifests added with file-based secrets
+- Production environment validator added and wired into CI
+- Backup and restore scripts added
+- Backup/restore drill added to Docker CI
+- Lightweight load test script added with measurable latency and error-rate thresholds
+- Prisma dependency pinned to an audit-clean version
 
 ## What Remains
 
-- External observability stack integration: Prometheus/Grafana or platform-native metrics dashboards
-- Automated backup job and restore drill in CI or staging
-- Staging and production deployment manifests for the chosen host
-- Load, concurrency and failure-mode test execution with recorded thresholds
-- Production secret store integration and rotation rehearsal
+- Run the production Compose profile with real organization-owned secrets on the chosen host
+- Connect Grafana or the platform-native equivalent to a real alert destination
+- Schedule automated backups in the target infrastructure
+- Execute formal business-flow load tests against staging with agreed service-level thresholds
+- Rehearse secret rotation with real secrets and document the incident window
 
 ## Validation
 
@@ -48,3 +55,10 @@ Last updated: 2026-09-01
 - Docker `/health`: pass
 - Live release smoke: pass
 - Metrics endpoint: pass
+- Dependency audit: pass
+- Production environment validator: pass
+- Lightweight load check: pass
+- Compose staging config: pass
+- Compose production config: pass
+- Compose observability config: pass
+- Backup/restore drill: pass

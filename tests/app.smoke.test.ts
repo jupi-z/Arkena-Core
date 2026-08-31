@@ -39,4 +39,12 @@ describe('App smoke', () => {
     expect(response.text).toContain('arkena_http_requests_total');
     expect(response.text).toContain('route="/health/live"');
   });
+
+  it('does not rate-limit operational probes', async () => {
+    const app = createApp();
+    const response = await request(app).get('/health/live');
+
+    expect(response.status).toBe(200);
+    expect(response.headers['ratelimit-limit']).toBeUndefined();
+  });
 });

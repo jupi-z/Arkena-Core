@@ -77,7 +77,8 @@ export function createApp() {
     windowMs: env.RATE_LIMIT_WINDOW_MS,
     limit: env.RATE_LIMIT_MAX_REQUESTS,
     standardHeaders: true,
-    legacyHeaders: false
+    legacyHeaders: false,
+    skip: (req) => req.path.startsWith('/health') || req.path === '/metrics'
   }));
   app.use(express.json({ limit: env.BODY_SIZE_LIMIT }));
   app.use(express.urlencoded({ extended: true }));

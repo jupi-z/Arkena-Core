@@ -7,6 +7,7 @@ This runbook describes the minimum operational procedures required to run Arkena
 Before promoting a build:
 
 - Confirm the target branch is `main` and the source branch is `develop`.
+- Run `npm run ops:validate-env` with production-equivalent variables or secret files.
 - Run `npm run build`.
 - Run `npm test`.
 - Start a clean stack with `docker compose down -v` then `docker compose up -d --build`.
@@ -16,6 +17,7 @@ Before promoting a build:
 - Confirm no demo secret is used in production.
 - Confirm `ENABLE_OPENAPI_DOCS=false` in production if API docs must not be public.
 - Confirm `/metrics` is private or protected by `METRICS_BEARER_TOKEN`.
+- Run `npm audit --audit-level=high`.
 
 ## Health Checks
 
@@ -34,6 +36,12 @@ Load balancers and orchestrators should use `/health/ready` for traffic routing 
 - `arkena_nodejs_memory_rss_bytes`
 - `arkena_http_requests_total`
 - `arkena_http_request_duration_seconds`
+
+Run Prometheus and Grafana with:
+
+```bash
+docker compose --env-file .env -f deploy/docker-compose.prod.yml -f deploy/docker-compose.observability.yml up -d
+```
 
 Recommended initial alerts:
 
@@ -61,8 +69,13 @@ Forward container stdout to the target platform log sink. Keep request ids in er
 For Docker Compose deployments, a logical PostgreSQL backup can be created with:
 
 ```bash
-docker exec arkenacore-db-1 pg_dump -U postgres -d arkena_core --format=custom --file=/tmp/arkena_core.dump
-docker cp arkenacore-db-1:/tmp/arkena_core.dump ./backups/arkena_core-$(date +%Y%m%d-%H%M%S).dump
+scripts/backup-postgres.sh
+```
+
+On Windows PowerShell:
+
+```powershell
+./scripts/backup-postgres.ps1
 ```
 
 Production guidance:
@@ -78,11 +91,17 @@ Production guidance:
 Restore only into an empty or disposable database unless a controlled production incident procedure is active.
 
 ```bash
-docker compose down
-docker volume rm arkena-core_postgres_data
 docker compose up -d db
-docker cp ./backups/arkena_core.dump arkenacore-db-1:/tmp/arkena_core.dump
-docker exec arkenacore-db-1 pg_restore -U postgres -d arkena_core --clean --if-exists /tmp/arkena_core.dump
+ALLOW_RESTORE=true scripts/restore-postgres.sh ./backups/arkena_core.dump
+docker compose up -d api
+```
+
+On Windows PowerShell:
+
+```powershell
+docker compose up -d db
+$env:ALLOW_RESTORE = 'true'
+./scripts/restore-postgres.ps1 ./backups/arkena_core.dump
 docker compose up -d api
 ```
 
@@ -102,6 +121,8 @@ Secrets that must be rotatable:
 - `JWT_RESET_SECRET`
 - database password
 - `METRICS_BEARER_TOKEN`
+
+Production Compose reads sensitive values from files under `secrets/`. The real directory is ignored by Git; use `deploy/secrets.example/README.md` as the template.
 
 Recommended JWT rotation process:
 
@@ -139,3 +160,11 @@ Minimum pre-production scenarios:
 - Dashboard overview under concurrent reads.
 
 Use a disposable environment with production-like limits. Do not run destructive load tests against production data.
+
+Run the built-in lightweight load check with:
+
+```bash
+LOAD_TEST_BASE_URL=http://127.0.0.1:3000 LOAD_TEST_PATH=/health/ready npm run test:load
+```
+
+Default thresholds are `p95 <= 500ms` and error rate `<= 1%`.

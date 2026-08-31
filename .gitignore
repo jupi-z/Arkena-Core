@@ -5,6 +5,8 @@ dist
 coverage
 uploads
 uploads-test
+backups
+secrets
 *.log
 prisma/dev.db
 *.sqlite

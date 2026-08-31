@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import fs from 'node:fs';
 import { z } from 'zod';
 
 const booleanString = z
@@ -38,7 +39,52 @@ const envSchema = z.object({
   DEFAULT_SUPER_ADMIN_PHONE: z.string().default('+0000000000')
 });
 
-export const env = envSchema.parse(process.env);
+function readSecret(name: string): string | undefined {
+  const filePath = process.env[`${name}_FILE`];
+  if (!filePath) {
+    return process.env[name];
+  }
+
+  return fs.readFileSync(filePath, 'utf8').trim();
+}
+
+const parsedEnv = envSchema.parse({
+  ...process.env,
+  DATABASE_URL: readSecret('DATABASE_URL'),
+  JWT_ACCESS_SECRET: readSecret('JWT_ACCESS_SECRET'),
+  JWT_REFRESH_SECRET: readSecret('JWT_REFRESH_SECRET'),
+  JWT_RESET_SECRET: readSecret('JWT_RESET_SECRET'),
+  METRICS_BEARER_TOKEN: readSecret('METRICS_BEARER_TOKEN'),
+  DEFAULT_SUPER_ADMIN_PASSWORD: readSecret('DEFAULT_SUPER_ADMIN_PASSWORD')
+});
+
+const demoValues = new Set([
+  'postgresql://postgres:postgres@db:5432/arkena_core?schema=public',
+  'dev-access-secret-arkena-core-0123456789',
+  'dev-refresh-secret-arkena-core-0123456789',
+  'dev-reset-secret-arkena-core-0123456789',
+  'ChangeMe123!'
+]);
+
+if (parsedEnv.NODE_ENV === 'production') {
+  const insecureKeys = [
+    ['DATABASE_URL', parsedEnv.DATABASE_URL],
+    ['JWT_ACCESS_SECRET', parsedEnv.JWT_ACCESS_SECRET],
+    ['JWT_REFRESH_SECRET', parsedEnv.JWT_REFRESH_SECRET],
+    ['JWT_RESET_SECRET', parsedEnv.JWT_RESET_SECRET],
+    ['DEFAULT_SUPER_ADMIN_PASSWORD', parsedEnv.DEFAULT_SUPER_ADMIN_PASSWORD]
+  ].filter(([, value]) => demoValues.has(value));
+
+  if (insecureKeys.length > 0) {
+    throw new Error(`Production environment uses demo values: ${insecureKeys.map(([key]) => key).join(', ')}`);
+  }
+
+  if (parsedEnv.METRICS_ENABLED === 'true' && !parsedEnv.METRICS_BEARER_TOKEN) {
+    throw new Error('Production metrics must be protected with METRICS_BEARER_TOKEN or disabled with METRICS_ENABLED=false');
+  }
+}
+
+export const env = parsedEnv;
 
 export const corsOrigins = env.CORS_ORIGINS.split(',')
   .map((origin) => origin.trim())
