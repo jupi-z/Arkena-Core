@@ -114,6 +114,7 @@ export const openApiSpec = {
   security: [{ bearerAuth: [] }],
   tags: [
     { name: 'Health' },
+    { name: 'Observability' },
     { name: 'Auth' },
     { name: 'Users' },
     { name: 'Departments' },
@@ -173,7 +174,7 @@ export const openApiSpec = {
         required: ['email', 'password'],
         properties: {
           email: { type: 'string', format: 'email', example: 'admin@arkena.local' },
-          password: { type: 'string', example: 'ChangeMe123!ChangeMe123!' }
+          password: { type: 'string', example: 'ChangeMe123!' }
         }
       },
       RegisterInitialAdminRequest: {
@@ -181,7 +182,7 @@ export const openApiSpec = {
         required: ['email', 'password', 'firstName', 'lastName'],
         properties: {
           email: { type: 'string', format: 'email', example: 'admin@arkena.local' },
-          password: { type: 'string', example: 'ChangeMe123!ChangeMe123!' },
+          password: { type: 'string', example: 'ChangeMe123!' },
           firstName: { type: 'string', example: 'Super' },
           lastName: { type: 'string', example: 'Admin' },
           phone: { type: 'string', example: '+0000000000' }
@@ -533,9 +534,17 @@ export const openApiSpec = {
         properties: {
           status: { type: 'string', example: 'ok' },
           service: { type: 'string', example: 'Arkena Core' },
-          environment: { type: 'string', example: 'development' }
+          version: { type: 'string', example: '1.0.0' },
+          environment: { type: 'string', example: 'production' },
+          uptimeSeconds: { type: 'integer', example: 124 },
+          dependencies: {
+            type: 'object',
+            properties: {
+              database: { type: 'string', example: 'up' }
+            }
+          }
         },
-        required: ['status', 'service', 'environment']
+        required: ['status', 'service', 'version', 'environment', 'uptimeSeconds']
       }
     }
   },
@@ -543,9 +552,54 @@ export const openApiSpec = {
     '/health': {
       get: {
         tags: ['Health'],
-        summary: 'Health check',
+        summary: 'Aggregated health check',
         responses: {
           200: successResponse({ $ref: '#/components/schemas/HealthResponse' }),
+          503: errorResponse('Service degraded'),
+          500: errorResponse('Server error')
+        }
+      }
+    },
+    '/health/live': {
+      get: {
+        tags: ['Health'],
+        summary: 'Liveness probe',
+        responses: {
+          200: successResponse({ $ref: '#/components/schemas/HealthResponse' }),
+          500: errorResponse('Server error')
+        }
+      }
+    },
+    '/health/ready': {
+      get: {
+        tags: ['Health'],
+        summary: 'Readiness probe',
+        responses: {
+          200: successResponse({ $ref: '#/components/schemas/HealthResponse' }),
+          503: errorResponse('Service not ready'),
+          500: errorResponse('Server error')
+        }
+      }
+    },
+    '/metrics': {
+      get: {
+        tags: ['Observability'],
+        summary: 'Prometheus-compatible operational metrics',
+        security: [],
+        responses: {
+          200: {
+            description: 'Prometheus text exposition format',
+            content: {
+              'text/plain': {
+                schema: {
+                  type: 'string',
+                  example: '# HELP arkena_http_requests_total Total HTTP requests by method, route and status code.\narkena_http_requests_total{method="GET",route="/health/live",status_code="200"} 1\n'
+                }
+              }
+            }
+          },
+          401: errorResponse('Metrics bearer token missing or invalid'),
+          404: errorResponse('Metrics disabled'),
           500: errorResponse('Server error')
         }
       }

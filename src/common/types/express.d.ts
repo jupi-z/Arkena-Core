@@ -14,6 +14,7 @@ declare global {
       };
       currentUser?: User & { employee?: unknown };
       requestContext?: {
+        requestId?: string;
         ip?: string;
         userAgent?: string;
       };

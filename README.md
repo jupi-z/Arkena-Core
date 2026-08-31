@@ -15,6 +15,8 @@ Arkena Core is a reusable enterprise backend reference that covers:
 - audit logging
 - dashboard statistics
 - OpenAPI documentation
+- production-grade health probes and graceful shutdown
+- Prometheus-compatible operational metrics
 
 ## Stack
 
@@ -46,6 +48,7 @@ flowchart LR
   API --> Notifications[Notifications module]
   API --> Audit[Audit module]
   API --> Dashboard[Dashboard module]
+  API --> Metrics[/metrics Observability/]
   Auth --> DB[(PostgreSQL)]
   Users --> DB
   Employees --> DB
@@ -104,12 +107,15 @@ Each module follows the same split:
 docker compose up
 ```
 
-The Compose stack runs Prisma migrations and the demo seed automatically, and ships with safe development defaults for local boot. Replace them before any production use.
+The local Compose stack runs Prisma migrations and the demo seed automatically, and ships with safe development defaults for local boot. Replace them before any production use.
 
 The API will be available at:
 
 - `http://localhost:3000`
 - `http://localhost:3000/docs`
+- `http://localhost:3000/health/live`
+- `http://localhost:3000/health/ready`
+- `http://localhost:3000/metrics`
 
 If port `3000` is already in use on your machine, set `API_PORT` in `.env` to another host port, for example `3002`. The container still listens on `3000`.
 
@@ -119,6 +125,9 @@ Progress tracking for the current implementation lives in [PROGRESS.md](C:/Users
 
 Key variables:
 
+- `SERVICE_NAME`
+- `SERVICE_VERSION`
+- `LOG_LEVEL`
 - `DATABASE_URL`
 - `JWT_ACCESS_SECRET`
 - `JWT_REFRESH_SECRET`
@@ -127,8 +136,26 @@ Key variables:
 - `REFRESH_TOKEN_TTL`
 - `RESET_TOKEN_TTL`
 - `CORS_ORIGINS`
+- `TRUST_PROXY`
+- `RATE_LIMIT_WINDOW_MS`
+- `RATE_LIMIT_MAX_REQUESTS`
+- `BODY_SIZE_LIMIT`
+- `ENABLE_OPENAPI_DOCS`
+- `METRICS_ENABLED`
+- `METRICS_BEARER_TOKEN`
+- `GRACEFUL_SHUTDOWN_TIMEOUT_MS`
+- `READINESS_DB_TIMEOUT_MS`
 - `UPLOAD_DIR`
 - `MAX_FILE_SIZE_BYTES`
+
+Production supports Docker-style secret file variables for sensitive values:
+
+- `DATABASE_URL_FILE`
+- `JWT_ACCESS_SECRET_FILE`
+- `JWT_REFRESH_SECRET_FILE`
+- `JWT_RESET_SECRET_FILE`
+- `METRICS_BEARER_TOKEN_FILE`
+- `DEFAULT_SUPER_ADMIN_PASSWORD_FILE`
 
 ## Migrations
 
@@ -139,7 +166,7 @@ Useful commands:
 ```bash
 npx prisma generate
 npx prisma migrate deploy
-npx prisma db seed
+npm run prisma:seed
 ```
 
 ## Tests
@@ -164,6 +191,38 @@ OpenAPI is served at:
 
 ```text
 http://localhost:3000/docs
+```
+
+Operational probes:
+
+```text
+http://localhost:3000/health/live
+http://localhost:3000/health/ready
+http://localhost:3000/metrics
+```
+
+`/metrics` uses the Prometheus text exposition format. Set `METRICS_BEARER_TOKEN` to require `Authorization: Bearer <token>` before exposing it outside a private network.
+
+## Operations
+
+Operational runbooks are documented in [OPERATIONS.md](C:/Users/Ameno%20MonarQue/Documents/ChatGPT/Arkena%20Core/OPERATIONS.md). They cover deployment checks, backup/restore, secret rotation, observability and incident response.
+
+Deployment profiles are documented in [DEPLOYMENT.md](C:/Users/Ameno%20MonarQue/Documents/ChatGPT/Arkena%20Core/DEPLOYMENT.md):
+
+- local demo: `docker compose up -d --build`
+- staging: `docker compose --env-file .env -f deploy/docker-compose.staging.yml up -d --build`
+- production: `docker compose --env-file .env -f deploy/docker-compose.prod.yml up -d`
+- observability: add `-f deploy/docker-compose.observability.yml`
+
+Useful operational scripts:
+
+```bash
+npm run ops:validate-env
+npm run test:load
+scripts/backup-postgres.sh
+ALLOW_RESTORE=true scripts/restore-postgres.sh ./backups/arkena_core.dump
+./scripts/backup-postgres.ps1
+$env:ALLOW_RESTORE='true'; ./scripts/restore-postgres.ps1 ./backups/arkena_core.dump
 ```
 
 ## Demo Accounts

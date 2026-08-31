@@ -12,7 +12,9 @@
     "start": "node dist/src/server.js",
     "test": "vitest run",
     "test:e2e": "vitest run tests/release.e2e.test.ts",
+    "test:load": "node scripts/load-test.mjs",
     "test:watch": "vitest",
+    "ops:validate-env": "node scripts/validate-production-env.mjs",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
@@ -20,7 +22,7 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
-    "@prisma/client": "^6.15.0",
+    "@prisma/client": "6.12.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dayjs": "^1.11.13",
@@ -45,7 +47,7 @@
     "@types/multer": "^2.0.0",
     "@types/node": "^24.3.0",
     "@types/supertest": "^6.0.3",
-    "prisma": "^6.15.0",
+    "prisma": "6.12.0",
     "supertest": "^7.1.4",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
