@@ -9,10 +9,7 @@ async function bootstrap() {
 
   const server = app.listen(env.PORT, () => {
     logger.info({
-      service: env.SERVICE_NAME,
-      version: env.SERVICE_VERSION,
-      port: env.PORT,
-      environment: env.NODE_ENV
+      port: env.PORT
     }, 'HTTP server started');
   });
 

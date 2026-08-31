@@ -74,6 +74,8 @@ Operational endpoints now distinguish:
 
 The server also supports graceful shutdown on `SIGINT` and `SIGTERM`.
 
+Runtime telemetry is exposed through `/metrics` in Prometheus text format. The endpoint is enabled by `METRICS_ENABLED` and can require a bearer token through `METRICS_BEARER_TOKEN`.
+
 ## Audit
 
 Important mutations can emit audit events through the audit service, storing:

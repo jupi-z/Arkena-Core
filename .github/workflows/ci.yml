@@ -63,6 +63,9 @@ jobs:
       - name: Verify docs
         run: curl -fsS http://127.0.0.1:3000/docs/ > /dev/null
 
+      - name: Verify metrics
+        run: curl -fsS http://127.0.0.1:3000/metrics | grep arkena_http_requests_total
+
       - name: Run release E2E
         run: npm run test:e2e
         env:

@@ -114,6 +114,7 @@ export const openApiSpec = {
   security: [{ bearerAuth: [] }],
   tags: [
     { name: 'Health' },
+    { name: 'Observability' },
     { name: 'Auth' },
     { name: 'Users' },
     { name: 'Departments' },
@@ -576,6 +577,29 @@ export const openApiSpec = {
         responses: {
           200: successResponse({ $ref: '#/components/schemas/HealthResponse' }),
           503: errorResponse('Service not ready'),
+          500: errorResponse('Server error')
+        }
+      }
+    },
+    '/metrics': {
+      get: {
+        tags: ['Observability'],
+        summary: 'Prometheus-compatible operational metrics',
+        security: [],
+        responses: {
+          200: {
+            description: 'Prometheus text exposition format',
+            content: {
+              'text/plain': {
+                schema: {
+                  type: 'string',
+                  example: '# HELP arkena_http_requests_total Total HTTP requests by method, route and status code.\narkena_http_requests_total{method="GET",route="/health/live",status_code="200"} 1\n'
+                }
+              }
+            }
+          },
+          401: errorResponse('Metrics bearer token missing or invalid'),
+          404: errorResponse('Metrics disabled'),
           500: errorResponse('Server error')
         }
       }

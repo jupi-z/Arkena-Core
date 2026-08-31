@@ -4,7 +4,7 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import swaggerUi from 'swagger-ui-express';
 import { Prisma } from '@prisma/client';
-import { corsOrigins, docsEnabled, env } from './config/env.js';
+import { corsOrigins, docsEnabled, env, metricsEnabled } from './config/env.js';
 import { httpLogger } from './common/logger/logger.js';
 import { errorHandler } from './common/errors/error-handler.js';
 import { notFoundHandler } from './common/middleware/not-found.js';
@@ -12,6 +12,7 @@ import { requestContext } from './common/middleware/request-context.js';
 import { logger } from './common/logger/logger.js';
 import { prisma } from './database/prisma.js';
 import { getStartedAt, isShuttingDown } from './common/runtime/state.js';
+import { metricsAuthMiddleware, metricsMiddleware, renderMetrics } from './common/observability/metrics.js';
 import { authRoutes } from './modules/auth/index.js';
 import { usersRoutes } from './modules/users/index.js';
 import { departmentsRoutes } from './modules/departments/index.js';
@@ -82,6 +83,7 @@ export function createApp() {
   app.use(express.urlencoded({ extended: true }));
   app.use(httpLogger);
   app.use(requestContext);
+  app.use(metricsMiddleware);
 
   app.get('/health/live', (_req, res) => {
     res.json({
@@ -144,6 +146,14 @@ export function createApp() {
       }
     });
   });
+
+  if (metricsEnabled) {
+    app.get('/metrics', metricsAuthMiddleware, (_req, res) => {
+      res.type('text/plain; version=0.0.4; charset=utf-8').send(renderMetrics());
+    });
+  } else {
+    logger.warn('Metrics endpoint is disabled by configuration');
+  }
 
   if (docsEnabled) {
     app.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec, { explorer: true }));

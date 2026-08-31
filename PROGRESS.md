@@ -5,8 +5,8 @@ Last updated: 2026-09-01
 ## Global Progress
 
 - Scope completion: **100%**
-- Production readiness: **78%**
-- Current active workstream: **Operational hardening completed**
+- Production readiness: **85%**
+- Current active workstream: **Observability and operations hardening completed**
 - Current task progress: **100%**
 
 ## What Is Done
@@ -26,14 +26,16 @@ Last updated: 2026-09-01
 - GitHub Actions CI added for build, tests, and Docker Compose smoke validation
 - Release smoke test now validates live auth bootstrap, refresh rotation, RBAC, attendance summary, dashboard, and secure document lifecycle
 - Runtime hardening added: structured request ids, graceful shutdown, liveness/readiness probes, configurable rate limits and non-root Docker runtime
+- Prometheus-compatible `/metrics` endpoint added with optional bearer-token protection
+- Production operations runbook added for release checks, health checks, metrics, logs, backup, restore, secret rotation, incidents and load testing
 
 ## What Remains
 
-- Observability beyond logs: metrics, alerts and dashboards
-- Backup and restore runbooks with validation drills
-- Staging and production deployment runbooks
-- Load, concurrency and failure-mode testing
-- Secret rotation and production environment policy
+- External observability stack integration: Prometheus/Grafana or platform-native metrics dashboards
+- Automated backup job and restore drill in CI or staging
+- Staging and production deployment manifests for the chosen host
+- Load, concurrency and failure-mode test execution with recorded thresholds
+- Production secret store integration and rotation rehearsal
 
 ## Validation
 
@@ -45,3 +47,4 @@ Last updated: 2026-09-01
 - Docker health check: pass
 - Docker `/health`: pass
 - Live release smoke: pass
+- Metrics endpoint: pass

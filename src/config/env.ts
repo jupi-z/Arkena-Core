@@ -25,6 +25,8 @@ const envSchema = z.object({
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(300),
   BODY_SIZE_LIMIT: z.string().default('2mb'),
   ENABLE_OPENAPI_DOCS: booleanString.default('true'),
+  METRICS_ENABLED: booleanString.default('true'),
+  METRICS_BEARER_TOKEN: z.string().optional().default(''),
   GRACEFUL_SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
   READINESS_DB_TIMEOUT_MS: z.coerce.number().int().positive().default(2_000),
   UPLOAD_DIR: z.string().default('./uploads'),
@@ -43,3 +45,4 @@ export const corsOrigins = env.CORS_ORIGINS.split(',')
   .filter(Boolean);
 
 export const docsEnabled = env.ENABLE_OPENAPI_DOCS === 'true';
+export const metricsEnabled = env.METRICS_ENABLED === 'true';

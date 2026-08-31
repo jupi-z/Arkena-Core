@@ -26,4 +26,17 @@ describe('App smoke', () => {
     expect(response.status).toBe(200);
     expect(response.text).toContain('Swagger');
   });
+
+  it('serves Prometheus-compatible metrics', async () => {
+    const app = createApp();
+
+    await request(app).get('/health/live').expect(200);
+    const response = await request(app).get('/metrics');
+
+    expect(response.status).toBe(200);
+    expect(response.headers['content-type']).toContain('text/plain');
+    expect(response.text).toContain('arkena_process_uptime_seconds');
+    expect(response.text).toContain('arkena_http_requests_total');
+    expect(response.text).toContain('route="/health/live"');
+  });
 });
