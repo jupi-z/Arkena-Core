@@ -173,7 +173,7 @@ export const openApiSpec = {
         required: ['email', 'password'],
         properties: {
           email: { type: 'string', format: 'email', example: 'admin@arkena.local' },
-          password: { type: 'string', example: 'ChangeMe123!ChangeMe123!' }
+          password: { type: 'string', example: 'ChangeMe123!' }
         }
       },
       RegisterInitialAdminRequest: {
@@ -181,7 +181,7 @@ export const openApiSpec = {
         required: ['email', 'password', 'firstName', 'lastName'],
         properties: {
           email: { type: 'string', format: 'email', example: 'admin@arkena.local' },
-          password: { type: 'string', example: 'ChangeMe123!ChangeMe123!' },
+          password: { type: 'string', example: 'ChangeMe123!' },
           firstName: { type: 'string', example: 'Super' },
           lastName: { type: 'string', example: 'Admin' },
           phone: { type: 'string', example: '+0000000000' }
@@ -533,9 +533,17 @@ export const openApiSpec = {
         properties: {
           status: { type: 'string', example: 'ok' },
           service: { type: 'string', example: 'Arkena Core' },
-          environment: { type: 'string', example: 'development' }
+          version: { type: 'string', example: '1.0.0' },
+          environment: { type: 'string', example: 'production' },
+          uptimeSeconds: { type: 'integer', example: 124 },
+          dependencies: {
+            type: 'object',
+            properties: {
+              database: { type: 'string', example: 'up' }
+            }
+          }
         },
-        required: ['status', 'service', 'environment']
+        required: ['status', 'service', 'version', 'environment', 'uptimeSeconds']
       }
     }
   },
@@ -543,9 +551,31 @@ export const openApiSpec = {
     '/health': {
       get: {
         tags: ['Health'],
-        summary: 'Health check',
+        summary: 'Aggregated health check',
         responses: {
           200: successResponse({ $ref: '#/components/schemas/HealthResponse' }),
+          503: errorResponse('Service degraded'),
+          500: errorResponse('Server error')
+        }
+      }
+    },
+    '/health/live': {
+      get: {
+        tags: ['Health'],
+        summary: 'Liveness probe',
+        responses: {
+          200: successResponse({ $ref: '#/components/schemas/HealthResponse' }),
+          500: errorResponse('Server error')
+        }
+      }
+    },
+    '/health/ready': {
+      get: {
+        tags: ['Health'],
+        summary: 'Readiness probe',
+        responses: {
+          200: successResponse({ $ref: '#/components/schemas/HealthResponse' }),
+          503: errorResponse('Service not ready'),
           500: errorResponse('Server error')
         }
       }

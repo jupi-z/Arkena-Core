@@ -8,6 +8,7 @@ const baseUrl = process.env.E2E_BASE_URL ?? 'http://127.0.0.1:3002';
 const runId = randomUUID().slice(0, 8).toUpperCase();
 const adminEmail = process.env.DEFAULT_SUPER_ADMIN_EMAIL ?? 'admin@arkena.local';
 const adminPassword = process.env.DEFAULT_SUPER_ADMIN_PASSWORD ?? 'ChangeMe123!';
+const currentDay = new Date().toISOString().slice(0, 10);
 
 type Session = {
   accessToken: string;
@@ -49,8 +50,11 @@ const state = {
 };
 
 async function ensureHealthyBase() {
-  const response = await request(baseUrl).get('/health');
-  expect(response.status).toBe(200);
+  const liveResponse = await request(baseUrl).get('/health/live');
+  expect(liveResponse.status).toBe(200);
+
+  const readyResponse = await request(baseUrl).get('/health/ready');
+  expect(readyResponse.status).toBe(200);
 }
 
 async function bootstrapAdminSession() {
@@ -196,7 +200,7 @@ e2eDescribe('Release e2e', () => {
         email: `employee-${runId}@arkena.test`,
         phone: '+1000000099',
         jobTitle: 'Operations Specialist',
-        hireDate: new Date('2026-08-25T08:00:00.000Z').toISOString(),
+        hireDate: new Date(`${currentDay}T08:00:00.000Z`).toISOString(),
         status: 'ACTIVE',
         departmentId: state.departmentId,
         notes: 'Created by release e2e'
@@ -207,15 +211,15 @@ e2eDescribe('Release e2e', () => {
 
     const attendancePayloads = [
       {
-        attendanceDate: '2026-08-25T08:00:00.000Z',
+        attendanceDate: `${currentDay}T08:00:00.000Z`,
         status: 'PRESENT',
-        checkInAt: '2026-08-25T08:03:00.000Z',
-        checkOutAt: '2026-08-25T17:05:00.000Z'
+        checkInAt: `${currentDay}T08:03:00.000Z`,
+        checkOutAt: `${currentDay}T17:05:00.000Z`
       },
       {
-        attendanceDate: '2026-08-25T09:00:00.000Z',
+        attendanceDate: `${currentDay}T09:00:00.000Z`,
         status: 'LATE',
-        checkInAt: '2026-08-25T09:14:00.000Z'
+        checkInAt: `${currentDay}T09:14:00.000Z`
       }
     ] as const;
 
@@ -240,8 +244,8 @@ e2eDescribe('Release e2e', () => {
       .set('Authorization', `Bearer ${state.adminSession?.accessToken}`)
       .query({
         departmentId: state.departmentId,
-        from: '2026-08-25T00:00:00.000Z',
-        to: '2026-08-25T23:59:59.999Z'
+        from: `${currentDay}T00:00:00.000Z`,
+        to: `${currentDay}T23:59:59.999Z`
       });
 
     expect(summaryResponse.status).toBe(200);

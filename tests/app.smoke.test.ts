@@ -3,16 +3,18 @@ import { describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 
 describe('App smoke', () => {
-  it('serves the health endpoint', async () => {
+  it('serves the liveness health endpoint', async () => {
     const app = createApp();
-    const response = await request(app).get('/health');
+    const response = await request(app).get('/health/live');
 
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({
       success: true,
       data: {
         status: 'ok',
-        service: 'Arkena Core'
+        service: 'Arkena Core',
+        version: expect.any(String),
+        uptimeSeconds: expect.any(Number)
       }
     });
   });

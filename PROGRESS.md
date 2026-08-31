@@ -1,11 +1,12 @@
 # Progress
 
-Last updated: 2026-08-25
+Last updated: 2026-09-01
 
 ## Global Progress
 
-- Overall system progress: **100%**
-- Current active workstream: **Complete**
+- Scope completion: **100%**
+- Production readiness: **78%**
+- Current active workstream: **Operational hardening completed**
 - Current task progress: **100%**
 
 ## What Is Done
@@ -24,10 +25,15 @@ Last updated: 2026-08-25
 - Docker Compose boot proven on a free host port with live `/health` response
 - GitHub Actions CI added for build, tests, and Docker Compose smoke validation
 - Release smoke test now validates live auth bootstrap, refresh rotation, RBAC, attendance summary, dashboard, and secure document lifecycle
+- Runtime hardening added: structured request ids, graceful shutdown, liveness/readiness probes, configurable rate limits and non-root Docker runtime
 
 ## What Remains
 
-- Optional future enhancements outside the initial scope
+- Observability beyond logs: metrics, alerts and dashboards
+- Backup and restore runbooks with validation drills
+- Staging and production deployment runbooks
+- Load, concurrency and failure-mode testing
+- Secret rotation and production environment policy
 
 ## Validation
 

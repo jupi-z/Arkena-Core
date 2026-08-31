@@ -48,15 +48,15 @@ jobs:
       - name: Build and start stack
         run: docker compose up -d --build
 
-      - name: Wait for API health
+      - name: Wait for API readiness
         run: |
           for i in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:3000/health; then
+            if curl -fsS http://127.0.0.1:3000/health/ready; then
               exit 0
             fi
             sleep 2
           done
-          echo "API did not become healthy in time"
+          echo "API did not become ready in time"
           docker compose logs
           exit 1
 

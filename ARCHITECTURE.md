@@ -64,6 +64,16 @@ The application checks permissions, not raw role strings, at route level.
 
 Uploaded documents are stored outside the public route tree and only returned through authenticated download endpoints.
 
+## Runtime Operations
+
+Operational endpoints now distinguish:
+
+- liveness: `/health/live`
+- readiness: `/health/ready`
+- aggregate status: `/health`
+
+The server also supports graceful shutdown on `SIGINT` and `SIGTERM`.
+
 ## Audit
 
 Important mutations can emit audit events through the audit service, storing:

@@ -15,6 +15,7 @@ Arkena Core is a reusable enterprise backend reference that covers:
 - audit logging
 - dashboard statistics
 - OpenAPI documentation
+- production-grade health probes and graceful shutdown
 
 ## Stack
 
@@ -110,6 +111,8 @@ The API will be available at:
 
 - `http://localhost:3000`
 - `http://localhost:3000/docs`
+- `http://localhost:3000/health/live`
+- `http://localhost:3000/health/ready`
 
 If port `3000` is already in use on your machine, set `API_PORT` in `.env` to another host port, for example `3002`. The container still listens on `3000`.
 
@@ -119,6 +122,9 @@ Progress tracking for the current implementation lives in [PROGRESS.md](C:/Users
 
 Key variables:
 
+- `SERVICE_NAME`
+- `SERVICE_VERSION`
+- `LOG_LEVEL`
 - `DATABASE_URL`
 - `JWT_ACCESS_SECRET`
 - `JWT_REFRESH_SECRET`
@@ -127,6 +133,13 @@ Key variables:
 - `REFRESH_TOKEN_TTL`
 - `RESET_TOKEN_TTL`
 - `CORS_ORIGINS`
+- `TRUST_PROXY`
+- `RATE_LIMIT_WINDOW_MS`
+- `RATE_LIMIT_MAX_REQUESTS`
+- `BODY_SIZE_LIMIT`
+- `ENABLE_OPENAPI_DOCS`
+- `GRACEFUL_SHUTDOWN_TIMEOUT_MS`
+- `READINESS_DB_TIMEOUT_MS`
 - `UPLOAD_DIR`
 - `MAX_FILE_SIZE_BYTES`
 
@@ -139,7 +152,7 @@ Useful commands:
 ```bash
 npx prisma generate
 npx prisma migrate deploy
-npx prisma db seed
+npm run prisma:seed
 ```
 
 ## Tests
@@ -164,6 +177,13 @@ OpenAPI is served at:
 
 ```text
 http://localhost:3000/docs
+```
+
+Operational probes:
+
+```text
+http://localhost:3000/health/live
+http://localhost:3000/health/ready
 ```
 
 ## Demo Accounts

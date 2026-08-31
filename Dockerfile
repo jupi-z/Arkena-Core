@@ -17,6 +17,8 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 COPY package.json ./
-RUN mkdir -p /app/uploads
+RUN mkdir -p /app/uploads && chown -R node:node /app
+USER node
 EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 CMD wget -qO- http://127.0.0.1:3000/health/live > /dev/null || exit 1
 CMD ["node", "dist/src/server.js"]
