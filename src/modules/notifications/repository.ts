@@ -1,6 +1,17 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../database/prisma.js';
 
+const publicUserSelect = {
+  id: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  phone: true,
+  jobTitle: true,
+  role: true,
+  status: true
+} satisfies Prisma.UserSelect;
+
 export class NotificationsRepository {
   listNotifications(where: Prisma.NotificationWhereInput, skip: number, take: number, orderBy: Prisma.NotificationOrderByWithRelationInput) {
     return prisma.notification.findMany({
@@ -9,8 +20,12 @@ export class NotificationsRepository {
       take,
       orderBy,
       include: {
-        recipientUser: true,
-        createdByUser: true
+        recipientUser: {
+          select: publicUserSelect
+        },
+        createdByUser: {
+          select: publicUserSelect
+        }
       }
     });
   }
@@ -23,9 +38,26 @@ export class NotificationsRepository {
     return prisma.notification.create({ data });
   }
 
-  markRead(id: string) {
-    return prisma.notification.update({
+  findById(id: string) {
+    return prisma.notification.findUnique({
       where: { id },
+      include: {
+        recipientUser: {
+          select: publicUserSelect
+        },
+        createdByUser: {
+          select: publicUserSelect
+        }
+      }
+    });
+  }
+
+  markRead(id: string, recipientUserId: string) {
+    return prisma.notification.updateMany({
+      where: {
+        id,
+        recipientUserId
+      },
       data: {
         readAt: new Date()
       }

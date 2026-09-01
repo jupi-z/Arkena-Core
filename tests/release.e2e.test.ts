@@ -43,6 +43,7 @@ type DashboardOverview = {
 const state = {
   adminSession: null as Session | null,
   managerSession: null as Session | null,
+  employeeSession: null as Session | null,
   created: {
     attendanceIds: [] as string[]
   } as CreatedRecord,
@@ -111,6 +112,14 @@ e2eDescribe('Release e2e', () => {
 
     expect(managerLoginResponse.status).toBe(200);
     state.managerSession = managerLoginResponse.body.data as Session;
+
+    const employeeLoginResponse = await request(baseUrl).post('/auth/login').send({
+      email: 'employee@arkena.local',
+      password: 'Employee123!'
+    });
+
+    expect(employeeLoginResponse.status).toBe(200);
+    state.employeeSession = employeeLoginResponse.body.data as Session;
 
     const refreshResponse = await request(baseUrl).post('/auth/refresh').send({
       refreshToken: state.adminSession.refreshToken
@@ -190,6 +199,13 @@ e2eDescribe('Release e2e', () => {
       await request(baseUrl)
         .post('/auth/logout')
         .send({ refreshToken: state.managerSession.refreshToken })
+        .catch(() => undefined);
+    }
+
+    if (state.employeeSession) {
+      await request(baseUrl)
+        .post('/auth/logout')
+        .send({ refreshToken: state.employeeSession.refreshToken })
         .catch(() => undefined);
     }
   });
@@ -272,6 +288,59 @@ e2eDescribe('Release e2e', () => {
     });
 
     expect(blockedLoginResponse.status).toBe(401);
+  });
+
+  it('creates and marks an internal notification through recipient-scoped access', async () => {
+    const meResponse = await request(baseUrl)
+      .get('/auth/me')
+      .set('Authorization', `Bearer ${state.employeeSession?.accessToken}`);
+
+    expect(meResponse.status).toBe(200);
+    const recipientUserId = meResponse.body.data.id as string;
+
+    const createResponse = await request(baseUrl)
+      .post('/notifications')
+      .set('Authorization', `Bearer ${state.adminSession?.accessToken}`)
+      .send({
+        recipientUserId,
+        type: 'INFO',
+        title: `Release notification ${runId}`,
+        body: 'Recipient-scoped notification validation',
+        resourceType: 'release-e2e',
+        resourceId: runId
+      });
+
+    expect(createResponse.status).toBe(201);
+    const notificationId = createResponse.body.data.id as string;
+
+    const listResponse = await request(baseUrl)
+      .get('/notifications')
+      .set('Authorization', `Bearer ${state.employeeSession?.accessToken}`);
+
+    expect(listResponse.status).toBe(200);
+    expect(listResponse.body.data).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: notificationId,
+          recipientUserId,
+          readAt: null
+        })
+      ])
+    );
+
+    const readResponse = await request(baseUrl)
+      .patch(`/notifications/${notificationId}/read`)
+      .set('Authorization', `Bearer ${state.employeeSession?.accessToken}`);
+
+    expect(readResponse.status).toBe(200);
+    expect(readResponse.body).toMatchObject({
+      success: true,
+      data: {
+        id: notificationId,
+        recipientUserId,
+        readAt: expect.any(String)
+      }
+    });
   });
 
   it('returns attendance summary and dashboard statistics from real API data', async () => {

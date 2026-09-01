@@ -24,7 +24,7 @@ export class NotificationsController {
   };
 
   markRead = async (req: Request, res: Response) => {
-    const result = await this.service.markRead(String(req.params.id));
+    const result = await this.service.markRead(String(req.params.id), req.auth!.userId);
     res.json(ok(result));
   };
 }
