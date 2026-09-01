@@ -13,6 +13,7 @@ Arkena Core is a reusable enterprise backend reference that covers:
 - secure document storage and download
 - internal notifications
 - audit logging
+- secure user lifecycle management with session revocation on sensitive changes
 - dashboard statistics
 - OpenAPI documentation
 - production-grade health probes and graceful shutdown
@@ -119,7 +120,7 @@ The API will be available at:
 
 If port `3000` is already in use on your machine, set `API_PORT` in `.env` to another host port, for example `3002`. The container still listens on `3000`.
 
-Progress tracking for the current implementation lives in [PROGRESS.md](C:/Users/Ameno%20MonarQue/Documents/ChatGPT/Arkena%20Core/PROGRESS.md).
+Progress tracking for the current implementation lives in [PROGRESS.md](PROGRESS.md).
 
 ## Environment Variables
 
@@ -205,9 +206,9 @@ http://localhost:3000/metrics
 
 ## Operations
 
-Operational runbooks are documented in [OPERATIONS.md](C:/Users/Ameno%20MonarQue/Documents/ChatGPT/Arkena%20Core/OPERATIONS.md). They cover deployment checks, backup/restore, secret rotation, observability and incident response.
+Operational runbooks are documented in [OPERATIONS.md](OPERATIONS.md). They cover deployment checks, backup/restore, secret rotation, observability and incident response.
 
-Deployment profiles are documented in [DEPLOYMENT.md](C:/Users/Ameno%20MonarQue/Documents/ChatGPT/Arkena%20Core/DEPLOYMENT.md):
+Deployment profiles are documented in [DEPLOYMENT.md](DEPLOYMENT.md):
 
 - local demo: `docker compose up -d --build`
 - staging: `docker compose --env-file .env -f deploy/docker-compose.staging.yml up -d --build`
@@ -251,6 +252,29 @@ POST /auth/login
 ```bash
 GET /employees?page=1&limit=20&departmentId=...&status=ACTIVE&search=amina
 ```
+
+### Create A User
+
+```bash
+POST /users
+Authorization: Bearer <access-token>
+{
+  "email": "new.employee@arkena.local",
+  "password": "StrongPassword123!",
+  "firstName": "New",
+  "lastName": "Employee",
+  "role": "EMPLOYEE"
+}
+```
+
+### Suspend A User
+
+```bash
+DELETE /users/{id}
+Authorization: Bearer <access-token>
+```
+
+Suspending a user revokes active refresh-token sessions.
 
 ### Attendance Summary
 

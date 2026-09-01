@@ -11,10 +11,13 @@
 - server-side refresh token storage
 - refresh token hashing
 - logout and logout-all support
+- refresh-token session revocation after account suspension, non-active status changes and role changes
 - permission checks at route level
+- resource-level authorization for employee, attendance, document, notification and scoped dashboard access
 - secure document download endpoints
 - file size limits
 - file type limits
+- standardized upload errors for file-size failures
 - non-revealing error responses
 - structured request ids in logs and error payloads
 - non-root runtime container
@@ -28,6 +31,7 @@
 - Refresh tokens are stored hashed in the database.
 - Password reset tokens are also stored hashed.
 - Uploaded files are not served as public static assets.
+- User, notification and audit responses use safe projections and do not expose password hashes or refresh-token records.
 - Sensitive data should live in environment variables, not source code.
 - Production can use `_FILE` variables such as `JWT_ACCESS_SECRET_FILE` and `DATABASE_URL_FILE`.
 - OpenAPI docs can be disabled in production with `ENABLE_OPENAPI_DOCS=false`.
@@ -40,4 +44,4 @@
 - Keep PostgreSQL backups and migration history under version control.
 - Review permission mappings before production use.
 - Centralize logs and alerts before exposing the service to real traffic.
-- Follow [OPERATIONS.md](C:/Users/Ameno%20MonarQue/Documents/ChatGPT/Arkena%20Core/OPERATIONS.md) for release, backup, restore and incident procedures.
+- Follow [OPERATIONS.md](OPERATIONS.md) for release, backup, restore and incident procedures.
