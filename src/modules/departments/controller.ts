@@ -27,17 +27,17 @@ export class DepartmentsController {
   };
 
   create = async (req: Request, res: Response) => {
-    const result = await this.service.create(req.body);
+    const result = await this.service.create({ ...req.body, actorUserId: req.auth?.userId });
     res.status(201).json(ok(result));
   };
 
   update = async (req: Request, res: Response) => {
-    const result = await this.service.update(String(req.params.id), req.body);
+    const result = await this.service.update(String(req.params.id), req.body, req.auth?.userId);
     res.json(ok(result));
   };
 
   remove = async (req: Request, res: Response) => {
-    const result = await this.service.remove(String(req.params.id));
+    const result = await this.service.remove(String(req.params.id), req.auth?.userId);
     res.json(ok(result));
   };
 }

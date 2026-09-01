@@ -6,7 +6,7 @@ Last updated: 2026-09-02
 
 - Scope completion: **100%**
 - Production readiness: **99%**
-- Current active workstream: **Safe related-user serialization and notification scoping completed**
+- Current active workstream: **Department audit enrichment completed**
 - Current task progress: **100%**
 
 ## What Is Done
@@ -20,6 +20,7 @@ Last updated: 2026-09-02
 - Audit records automatically inherit request IP and user-agent metadata when available
 - Audit and notification responses use safe related-user projections without password hashes
 - Notification read actions are scoped to the authenticated recipient
+- Department create/update/delete audit entries include actor and before/after snapshots
 - Resource-level authorization enforced for employee, attendance and document access scopes
 - Dashboard statistics are scoped by role so managers only see their managed department
 - Core modules created: users, employees, departments, attendance, documents, notifications, audit, dashboard
@@ -31,6 +32,7 @@ Last updated: 2026-09-02
 - User lifecycle tests cover secure creation, response sanitization and session revocation on suspension
 - Request context tests prove audit metadata survives asynchronous request handling
 - Notification tests cover recipient-scoped read updates and unauthorized existence hiding
+- Department service tests cover pagination and audit-safe mutation preloading
 - Resource-level RBAC tests added for manager and employee data boundaries
 - Dashboard scope tests and release E2E coverage added for manager department isolation
 - Local runtime boot proven on a free port
@@ -75,6 +77,7 @@ Last updated: 2026-09-02
 - Automatic audit request metadata tests: pass
 - Notification scoped read tests: pass
 - Notification release E2E: pass
+- Department service tests: pass
 - Production environment validator: pass
 - Lightweight load check: pass
 - Compose staging config: pass
