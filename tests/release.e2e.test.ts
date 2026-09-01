@@ -216,6 +216,64 @@ e2eDescribe('Release e2e', () => {
     expect(overview.totalEmployees).toBe(overview.departments[0].employeeCount);
   });
 
+  it('creates and suspends a user account through secured admin endpoints', async () => {
+    const email = `api-user-${runId}@arkena.test`.toLowerCase();
+    const password = 'StrongUserPass123!';
+    const createResponse = await request(baseUrl)
+      .post('/users')
+      .set('Authorization', `Bearer ${state.adminSession?.accessToken}`)
+      .send({
+        email,
+        password,
+        firstName: 'API',
+        lastName: 'User',
+        role: 'EMPLOYEE',
+        status: 'ACTIVE'
+      });
+
+    expect(createResponse.status).toBe(201);
+    expect(createResponse.body).toMatchObject({
+      success: true,
+      data: {
+        email,
+        role: 'EMPLOYEE',
+        status: 'ACTIVE'
+      }
+    });
+    expect(createResponse.body.data).not.toHaveProperty('passwordHash');
+    expect(createResponse.body.data).not.toHaveProperty('refreshTokens');
+
+    const userId = createResponse.body.data.id as string;
+    const loginResponse = await request(baseUrl).post('/auth/login').send({
+      email,
+      password
+    });
+
+    expect(loginResponse.status).toBe(200);
+
+    const suspendResponse = await request(baseUrl)
+      .delete(`/users/${userId}`)
+      .set('Authorization', `Bearer ${state.adminSession?.accessToken}`);
+
+    expect(suspendResponse.status).toBe(200);
+    expect(suspendResponse.body).toMatchObject({
+      success: true,
+      data: {
+        id: userId,
+        status: 'SUSPENDED'
+      }
+    });
+    expect(suspendResponse.body.data).not.toHaveProperty('passwordHash');
+    expect(suspendResponse.body.data).not.toHaveProperty('refreshTokens');
+
+    const blockedLoginResponse = await request(baseUrl).post('/auth/login').send({
+      email,
+      password
+    });
+
+    expect(blockedLoginResponse.status).toBe(401);
+  });
+
   it('returns attendance summary and dashboard statistics from real API data', async () => {
     const departmentResponse = await request(baseUrl)
       .post('/departments')

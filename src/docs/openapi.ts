@@ -258,7 +258,23 @@ export const openApiSpec = {
         properties: {
           firstName: { type: 'string' },
           lastName: { type: 'string' },
+          phone: { type: 'string', nullable: true },
+          jobTitle: { type: 'string', nullable: true },
           status: { type: 'string' }
+        }
+      },
+      UserCreateRequest: {
+        type: 'object',
+        required: ['email', 'password', 'firstName', 'lastName'],
+        properties: {
+          email: { type: 'string', format: 'email', example: 'new.employee@arkena.local' },
+          password: { type: 'string', minLength: 12, example: 'StrongPassword123!' },
+          firstName: { type: 'string', example: 'New' },
+          lastName: { type: 'string', example: 'Employee' },
+          phone: { type: 'string', nullable: true },
+          jobTitle: { type: 'string', nullable: true },
+          role: { type: 'string', enum: ['SUPER_ADMIN', 'ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'], default: 'EMPLOYEE' },
+          status: { type: 'string', enum: ['ACTIVE', 'INACTIVE', 'SUSPENDED'], default: 'ACTIVE' }
         }
       },
       RoleAssignmentRequest: {
@@ -732,6 +748,19 @@ export const openApiSpec = {
           200: listResponse({ $ref: '#/components/schemas/User' }),
           ...listErrorResponses
         }
+      },
+      post: {
+        tags: ['Users'],
+        summary: 'Create a user account',
+        requestBody: {
+          required: true,
+          content: jsonContent({ $ref: '#/components/schemas/UserCreateRequest' })
+        },
+        responses: {
+          201: successResponse({ $ref: '#/components/schemas/User' }, 'User account created'),
+          409: errorResponse('User email already exists'),
+          ...authErrorResponses
+        }
       }
     },
     '/users/{id}': {
@@ -752,6 +781,15 @@ export const openApiSpec = {
           required: true,
           content: jsonContent({ $ref: '#/components/schemas/UserUpdateRequest' })
         },
+        responses: {
+          200: successResponse({ $ref: '#/components/schemas/User' }),
+          ...listErrorResponses
+        }
+      },
+      delete: {
+        tags: ['Users'],
+        summary: 'Suspend a user account and revoke active sessions',
+        parameters: [idParam],
         responses: {
           200: successResponse({ $ref: '#/components/schemas/User' }),
           ...listErrorResponses

@@ -22,8 +22,16 @@ export class UsersRepository {
     return prisma.user.findUnique({
       where: { id },
       include: {
-        employee: true,
-        refreshTokens: true
+        employee: true
+      }
+    });
+  }
+
+  createUser(data: Prisma.UserCreateInput) {
+    return prisma.user.create({
+      data,
+      include: {
+        employee: true
       }
     });
   }
@@ -31,7 +39,22 @@ export class UsersRepository {
   updateUser(id: string, data: Prisma.UserUpdateInput) {
     return prisma.user.update({
       where: { id },
-      data
+      data,
+      include: {
+        employee: true
+      }
+    });
+  }
+
+  revokeRefreshTokensForUser(userId: string) {
+    return prisma.refreshToken.updateMany({
+      where: {
+        userId,
+        revokedAt: null
+      },
+      data: {
+        revokedAt: new Date()
+      }
     });
   }
 }

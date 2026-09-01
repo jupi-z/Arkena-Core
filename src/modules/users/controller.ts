@@ -26,13 +26,23 @@ export class UsersController {
     res.json(ok(result));
   };
 
+  create = async (req: Request, res: Response) => {
+    const result = await this.service.create({ ...req.body, actorUserId: req.auth?.userId });
+    res.status(201).json(ok(result));
+  };
+
   update = async (req: Request, res: Response) => {
-    const result = await this.service.update(String(req.params.id), req.body);
+    const result = await this.service.update(String(req.params.id), req.body, req.auth?.userId);
     res.json(ok(result));
   };
 
   assignRole = async (req: Request, res: Response) => {
-    const result = await this.service.assignRole(String(req.params.id), req.body.role);
+    const result = await this.service.assignRole(String(req.params.id), req.body.role, req.auth?.userId);
+    res.json(ok(result));
+  };
+
+  suspend = async (req: Request, res: Response) => {
+    const result = await this.service.suspend(String(req.params.id), req.auth?.userId);
     res.json(ok(result));
   };
 }

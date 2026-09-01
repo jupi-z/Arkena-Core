@@ -5,8 +5,8 @@ Last updated: 2026-09-02
 ## Global Progress
 
 - Scope completion: **100%**
-- Production readiness: **98%**
-- Current active workstream: **Dashboard data-scope hardening completed**
+- Production readiness: **99%**
+- Current active workstream: **Secure user lifecycle completed**
 - Current task progress: **100%**
 
 ## What Is Done
@@ -16,6 +16,7 @@ Last updated: 2026-09-02
 - Prisma schema, seed and initial migration in place
 - Auth with JWT access/refresh tokens implemented
 - RBAC permissions model implemented
+- User account creation and secure soft-deactivation implemented
 - Resource-level authorization enforced for employee, attendance and document access scopes
 - Dashboard statistics are scoped by role so managers only see their managed department
 - Core modules created: users, employees, departments, attendance, documents, notifications, audit, dashboard
@@ -23,6 +24,8 @@ Last updated: 2026-09-02
 - OpenAPI spec expanded with reusable schemas and endpoint coverage for the core API
 - Unit tests passing
 - Auth and core service coverage expanded for logout, logout-all, reset flow, forgot-password, profile retrieval, attendance summary, and secure document upload
+- User service responses are sanitized to prevent password hash and refresh token exposure
+- User lifecycle tests cover secure creation, response sanitization and session revocation on suspension
 - Resource-level RBAC tests added for manager and employee data boundaries
 - Dashboard scope tests and release E2E coverage added for manager department isolation
 - Local runtime boot proven on a free port
@@ -63,6 +66,7 @@ Last updated: 2026-09-02
 - Resource-level RBAC tests: pass
 - Dashboard scope tests: pass
 - Manager-scoped dashboard release E2E: pass
+- Secure user lifecycle release E2E: pass
 - Production environment validator: pass
 - Lightweight load check: pass
 - Compose staging config: pass
