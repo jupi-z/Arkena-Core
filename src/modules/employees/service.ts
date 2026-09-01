@@ -1,5 +1,5 @@
-import { Prisma } from '@prisma/client';
-import { notFound } from '../../common/errors/http-error.js';
+import { Prisma, RoleName } from '@prisma/client';
+import { forbidden, notFound } from '../../common/errors/http-error.js';
 import { recordAudit } from '../../common/audit/record-audit.js';
 import { offsetFromPage } from '../../common/http/query.js';
 import { EmployeesRepository } from './repository.js';
@@ -7,7 +7,51 @@ import { EmployeesRepository } from './repository.js';
 export class EmployeesService {
   constructor(private readonly repository = new EmployeesRepository()) {}
 
-  async list(query: { page: number; limit: number; search?: string; sortBy?: string; sortOrder: 'asc' | 'desc'; departmentId?: string; status?: string }) {
+  private applyScope(
+    where: Prisma.EmployeeWhereInput,
+    user: { role: RoleName; employeeId?: string | null; departmentId?: string | null }
+  ): Prisma.EmployeeWhereInput {
+    if (['SUPER_ADMIN', 'ADMIN', 'HR'].includes(user.role)) {
+      return where;
+    }
+
+    if (user.role === 'MANAGER') {
+      return {
+        AND: [
+          where,
+          {
+            departmentId: user.departmentId ?? '__no_department__'
+          }
+        ]
+      };
+    }
+
+    return {
+      AND: [
+        where,
+        {
+          id: user.employeeId ?? '__no_employee__'
+        }
+      ]
+    };
+  }
+
+  private canAccess(
+    user: { role: RoleName; employeeId?: string | null; departmentId?: string | null },
+    employee: { id: string; departmentId?: string | null }
+  ): boolean {
+    if (['SUPER_ADMIN', 'ADMIN', 'HR'].includes(user.role)) {
+      return true;
+    }
+
+    if (user.role === 'MANAGER') {
+      return Boolean(user.departmentId && employee.departmentId && user.departmentId === employee.departmentId);
+    }
+
+    return user.employeeId === employee.id;
+  }
+
+  async list(user: { role: RoleName; employeeId?: string | null; departmentId?: string | null }, query: { page: number; limit: number; search?: string; sortBy?: string; sortOrder: 'asc' | 'desc'; departmentId?: string; status?: string }) {
     const where: Prisma.EmployeeWhereInput = {};
 
     if (query.search) {
@@ -28,18 +72,22 @@ export class EmployeesService {
     }
 
     const sortBy = query.sortBy && ['createdAt', 'firstName', 'lastName', 'hireDate', 'employeeNumber'].includes(query.sortBy) ? query.sortBy : 'createdAt';
+    const scopedWhere = this.applyScope(where, user);
     const [items, total] = await Promise.all([
-      this.repository.listEmployees(where, offsetFromPage(query.page, query.limit), query.limit, { [sortBy]: query.sortOrder } as Prisma.EmployeeOrderByWithRelationInput),
-      this.repository.countEmployees(where)
+      this.repository.listEmployees(scopedWhere, offsetFromPage(query.page, query.limit), query.limit, { [sortBy]: query.sortOrder } as Prisma.EmployeeOrderByWithRelationInput),
+      this.repository.countEmployees(scopedWhere)
     ]);
 
     return { items, total };
   }
 
-  async getById(id: string) {
+  async getById(user: { role: RoleName; employeeId?: string | null; departmentId?: string | null }, id: string) {
     const employee = await this.repository.findById(id);
     if (!employee) {
       throw notFound('Employee not found');
+    }
+    if (!this.canAccess(user, employee)) {
+      throw forbidden();
     }
     return employee;
   }
@@ -56,6 +104,7 @@ export class EmployeesService {
     departmentId?: string | null;
     managerId?: string | null;
     userId?: string | null;
+    actorUserId?: string;
     notes?: string | null;
   }) {
     const created = await this.repository.create({
@@ -74,7 +123,7 @@ export class EmployeesService {
     });
 
     void recordAudit({
-      actorUserId: input.userId ?? undefined,
+      actorUserId: input.actorUserId,
       action: 'CREATE',
       resource: 'employee',
       resourceId: created.id,
@@ -86,8 +135,11 @@ export class EmployeesService {
     return created;
   }
 
-  async update(id: string, input: Record<string, unknown>) {
-    await this.getById(id);
+  async update(id: string, input: Record<string, unknown>, actorUserId?: string) {
+    const before = await this.repository.findById(id);
+    if (!before) {
+      throw notFound('Employee not found');
+    }
     const data: Prisma.EmployeeUpdateInput = {};
 
     if (typeof input.firstName === 'string') data.firstName = input.firstName;
@@ -107,20 +159,30 @@ export class EmployeesService {
 
     const updated = await this.repository.update(id, data);
     void recordAudit({
+      actorUserId,
       action: 'UPDATE',
       resource: 'employee',
-      resourceId: id
+      resourceId: id,
+      beforeData: before,
+      afterData: updated
     });
     return updated;
   }
 
-  async archive(id: string, archivedAt?: string) {
-    await this.getById(id);
+  async archive(id: string, archivedAt?: string, actorUserId?: string) {
+    const before = await this.repository.findById(id);
+    if (!before) {
+      throw notFound('Employee not found');
+    }
+
     const archived = await this.repository.archive(id, archivedAt ? new Date(archivedAt) : new Date());
     void recordAudit({
+      actorUserId,
       action: 'DELETE',
       resource: 'employee',
       resourceId: id,
+      beforeData: before,
+      afterData: archived,
       metadata: {
         archived: true
       }

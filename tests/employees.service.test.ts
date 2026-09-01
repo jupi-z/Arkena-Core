@@ -13,14 +13,82 @@ describe('EmployeesService', () => {
     };
 
     const service = new EmployeesService(repository as any);
-    const result = await service.list({
-      page: 1,
-      limit: 20,
-      sortOrder: 'desc'
-    });
+    const result = await service.list(
+      { role: 'ADMIN' },
+      {
+        page: 1,
+        limit: 20,
+        sortOrder: 'desc'
+      }
+    );
 
     expect(result.total).toBe(1);
     expect(result.items).toHaveLength(1);
+  });
+
+  it('scopes manager employee lists to their department', async () => {
+    const repository = {
+      listEmployees: vi.fn().mockResolvedValue([]),
+      countEmployees: vi.fn().mockResolvedValue(0),
+      findById: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      archive: vi.fn()
+    };
+
+    const service = new EmployeesService(repository as any);
+    await service.list(
+      {
+        role: 'MANAGER',
+        departmentId: 'dept-1',
+        employeeId: 'manager-employee'
+      },
+      {
+        page: 1,
+        limit: 20,
+        sortOrder: 'desc'
+      }
+    );
+
+    expect(repository.listEmployees).toHaveBeenCalledWith(
+      expect.objectContaining({
+        AND: expect.arrayContaining([
+          expect.objectContaining({
+            departmentId: 'dept-1'
+          })
+        ])
+      }),
+      0,
+      20,
+      expect.any(Object)
+    );
+  });
+
+  it('forbids employees from reading another employee profile', async () => {
+    const repository = {
+      listEmployees: vi.fn(),
+      countEmployees: vi.fn(),
+      findById: vi.fn().mockResolvedValue({
+        id: 'emp-2',
+        departmentId: 'dept-1'
+      }),
+      create: vi.fn(),
+      update: vi.fn(),
+      archive: vi.fn()
+    };
+
+    const service = new EmployeesService(repository as any);
+
+    await expect(
+      service.getById(
+        {
+          role: 'EMPLOYEE',
+          employeeId: 'emp-1',
+          departmentId: 'dept-1'
+        },
+        'emp-2'
+      )
+    ).rejects.toThrow(/forbidden/i);
   });
 
   it('creates an employee with normalized values', async () => {

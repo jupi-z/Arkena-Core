@@ -18,7 +18,7 @@ const ALLOWED_MIME_TYPES = new Set([
 export class DocumentsService {
   constructor(private readonly repository = new DocumentsRepository()) {}
 
-  private canAccess(user: { id: string; role: RoleName; employeeId?: string | null; departmentId?: string | null }, document: { employeeId: string; departmentId?: string | null }) {
+  private canAccess(user: { role: RoleName; employeeId?: string | null; departmentId?: string | null }, document: { employeeId: string; departmentId?: string | null }) {
     if (['SUPER_ADMIN', 'ADMIN', 'HR'].includes(user.role)) {
       return true;
     }
@@ -30,7 +30,38 @@ export class DocumentsService {
     return user.employeeId === document.employeeId;
   }
 
-  async list(query: { page: number; limit: number; search?: string; sortBy?: string; sortOrder: 'asc' | 'desc'; employeeId?: string; type?: string }) {
+  private applyScope(
+    where: Prisma.DocumentWhereInput,
+    user: { role: RoleName; employeeId?: string | null; departmentId?: string | null }
+  ): Prisma.DocumentWhereInput {
+    if (['SUPER_ADMIN', 'ADMIN', 'HR'].includes(user.role)) {
+      return where;
+    }
+
+    if (user.role === 'MANAGER') {
+      return {
+        AND: [
+          where,
+          {
+            employee: {
+              departmentId: user.departmentId ?? '__no_department__'
+            }
+          }
+        ]
+      };
+    }
+
+    return {
+      AND: [
+        where,
+        {
+          employeeId: user.employeeId ?? '__no_employee__'
+        }
+      ]
+    };
+  }
+
+  async list(user: { role: RoleName; employeeId?: string | null; departmentId?: string | null }, query: { page: number; limit: number; search?: string; sortBy?: string; sortOrder: 'asc' | 'desc'; employeeId?: string; type?: string }) {
     const where: Prisma.DocumentWhereInput = {
       deletedAt: null
     };
@@ -45,18 +76,22 @@ export class DocumentsService {
     }
 
     const sortBy = query.sortBy && ['createdAt', 'title', 'type'].includes(query.sortBy) ? query.sortBy : 'createdAt';
+    const scopedWhere = this.applyScope(where, user);
     const [items, total] = await Promise.all([
-      this.repository.listDocuments(where, offsetFromPage(query.page, query.limit), query.limit, { [sortBy]: query.sortOrder } as Prisma.DocumentOrderByWithRelationInput),
-      this.repository.countDocuments(where)
+      this.repository.listDocuments(scopedWhere, offsetFromPage(query.page, query.limit), query.limit, { [sortBy]: query.sortOrder } as Prisma.DocumentOrderByWithRelationInput),
+      this.repository.countDocuments(scopedWhere)
     ]);
 
     return { items, total };
   }
 
-  async getById(id: string) {
+  async getById(user: { role: RoleName; employeeId?: string | null; departmentId?: string | null }, id: string) {
     const document = await this.repository.findById(id);
     if (!document || document.deletedAt) {
       throw notFound('Document not found');
+    }
+    if (!this.canAccess(user, { employeeId: document.employeeId, departmentId: document.employee.departmentId })) {
+      throw forbidden();
     }
     return document;
   }
@@ -75,7 +110,7 @@ export class DocumentsService {
       throw badRequest('Unsupported file type');
     }
 
-    if (!this.canAccess({ id: user.userId, role: user.role, employeeId: user.employeeId, departmentId: user.departmentId }, { employeeId: metadata.employeeId })) {
+    if (!this.canAccess(user, { employeeId: metadata.employeeId })) {
       await fs.unlink(file.path).catch(() => undefined);
       throw forbidden();
     }
@@ -128,11 +163,7 @@ export class DocumentsService {
   }
 
   async download(user: { userId: string; role: RoleName; employeeId?: string | null; departmentId?: string | null }, id: string) {
-    const document = await this.getById(id);
-
-    if (!this.canAccess({ id: user.userId, role: user.role, employeeId: user.employeeId, departmentId: user.departmentId }, { employeeId: document.employeeId, departmentId: document.employee.departmentId })) {
-      throw forbidden();
-    }
+    const document = await this.getById(user, id);
 
     const filePath = path.resolve(env.UPLOAD_DIR, document.storageKey);
     const file = await fs.readFile(filePath).catch(() => null);
@@ -148,7 +179,7 @@ export class DocumentsService {
   }
 
   async remove(user: { userId: string; role: RoleName }, id: string) {
-    const document = await this.getById(id);
+    const document = await this.getById(user, id);
     if (!['SUPER_ADMIN', 'ADMIN', 'HR'].includes(user.role)) {
       throw forbidden();
     }

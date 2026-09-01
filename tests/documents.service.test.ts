@@ -5,6 +5,75 @@ import { env } from '../src/config/env.js';
 import { DocumentsService } from '../src/modules/documents/service.js';
 
 describe('DocumentsService', () => {
+  it('scopes manager document lists to their department', async () => {
+    const repository = {
+      listDocuments: vi.fn().mockResolvedValue([]),
+      countDocuments: vi.fn().mockResolvedValue(0),
+      findById: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn()
+    };
+
+    const service = new DocumentsService(repository as any);
+    await service.list(
+      {
+        role: 'MANAGER',
+        employeeId: 'manager-employee',
+        departmentId: 'dept-1'
+      },
+      {
+        page: 1,
+        limit: 20,
+        sortOrder: 'desc'
+      }
+    );
+
+    expect(repository.listDocuments).toHaveBeenCalledWith(
+      expect.objectContaining({
+        AND: expect.arrayContaining([
+          expect.objectContaining({
+            employee: {
+              departmentId: 'dept-1'
+            }
+          })
+        ])
+      }),
+      0,
+      20,
+      expect.any(Object)
+    );
+  });
+
+  it('forbids employees from reading another employee document', async () => {
+    const repository = {
+      listDocuments: vi.fn(),
+      countDocuments: vi.fn(),
+      findById: vi.fn().mockResolvedValue({
+        id: 'doc-1',
+        employeeId: 'emp-2',
+        deletedAt: null,
+        employee: {
+          departmentId: 'dept-1'
+        }
+      }),
+      create: vi.fn(),
+      update: vi.fn()
+    };
+
+    const service = new DocumentsService(repository as any);
+
+    await expect(
+      service.getById(
+        {
+          role: 'EMPLOYEE',
+          employeeId: 'emp-1',
+          departmentId: 'dept-1'
+        },
+        'doc-1'
+      )
+    ).rejects.toThrow(/forbidden/i);
+  });
+
   it('rejects uploads from unauthorized employees', async () => {
     const repository = {
       listDocuments: vi.fn(),

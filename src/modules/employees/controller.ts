@@ -6,7 +6,7 @@ export class EmployeesController {
   constructor(private readonly service = new EmployeesService()) {}
 
   list = async (req: Request, res: Response) => {
-    const result = await this.service.list(req.query as unknown as {
+    const result = await this.service.list(req.auth!, req.query as unknown as {
       page: number;
       limit: number;
       search?: string;
@@ -24,22 +24,22 @@ export class EmployeesController {
   };
 
   getById = async (req: Request, res: Response) => {
-    const result = await this.service.getById(String(req.params.id));
+    const result = await this.service.getById(req.auth!, String(req.params.id));
     res.json(ok(result));
   };
 
   create = async (req: Request, res: Response) => {
-    const result = await this.service.create(req.body);
+    const result = await this.service.create({ ...req.body, actorUserId: req.auth?.userId });
     res.status(201).json(ok(result));
   };
 
   update = async (req: Request, res: Response) => {
-    const result = await this.service.update(String(req.params.id), req.body);
+    const result = await this.service.update(String(req.params.id), req.body, req.auth?.userId);
     res.json(ok(result));
   };
 
   archive = async (req: Request, res: Response) => {
-    const result = await this.service.archive(String(req.params.id), req.body.archivedAt);
+    const result = await this.service.archive(String(req.params.id), req.body.archivedAt, req.auth?.userId);
     res.json(ok(result));
   };
 }

@@ -1,5 +1,5 @@
-import { Prisma } from '@prisma/client';
-import { badRequest, notFound } from '../../common/errors/http-error.js';
+import { Prisma, RoleName } from '@prisma/client';
+import { badRequest, forbidden, notFound } from '../../common/errors/http-error.js';
 import { recordAudit } from '../../common/audit/record-audit.js';
 import { offsetFromPage } from '../../common/http/query.js';
 import { AttendanceRepository } from './repository.js';
@@ -7,7 +7,51 @@ import { AttendanceRepository } from './repository.js';
 export class AttendanceService {
   constructor(private readonly repository = new AttendanceRepository()) {}
 
-  async list(query: {
+  private applyScope(
+    where: Prisma.AttendanceRecordWhereInput,
+    user: { role: RoleName; employeeId?: string | null; departmentId?: string | null }
+  ): Prisma.AttendanceRecordWhereInput {
+    if (['SUPER_ADMIN', 'ADMIN', 'HR'].includes(user.role)) {
+      return where;
+    }
+
+    if (user.role === 'MANAGER') {
+      return {
+        AND: [
+          where,
+          {
+            departmentId: user.departmentId ?? '__no_department__'
+          }
+        ]
+      };
+    }
+
+    return {
+      AND: [
+        where,
+        {
+          employeeId: user.employeeId ?? '__no_employee__'
+        }
+      ]
+    };
+  }
+
+  private canAccess(
+    user: { role: RoleName; employeeId?: string | null; departmentId?: string | null },
+    record: { employeeId: string; departmentId?: string | null }
+  ): boolean {
+    if (['SUPER_ADMIN', 'ADMIN', 'HR'].includes(user.role)) {
+      return true;
+    }
+
+    if (user.role === 'MANAGER') {
+      return Boolean(user.departmentId && record.departmentId && user.departmentId === record.departmentId);
+    }
+
+    return user.employeeId === record.employeeId;
+  }
+
+  async list(user: { role: RoleName; employeeId?: string | null; departmentId?: string | null }, query: {
     page: number;
     limit: number;
     search?: string;
@@ -40,23 +84,27 @@ export class AttendanceService {
     }
 
     const sortBy = query.sortBy && ['attendanceDate', 'createdAt', 'updatedAt'].includes(query.sortBy) ? query.sortBy : 'attendanceDate';
+    const scopedWhere = this.applyScope(where, user);
     const [items, total] = await Promise.all([
-      this.repository.listAttendance(where, offsetFromPage(query.page, query.limit), query.limit, { [sortBy]: query.sortOrder } as Prisma.AttendanceRecordOrderByWithRelationInput),
-      this.repository.countAttendance(where)
+      this.repository.listAttendance(scopedWhere, offsetFromPage(query.page, query.limit), query.limit, { [sortBy]: query.sortOrder } as Prisma.AttendanceRecordOrderByWithRelationInput),
+      this.repository.countAttendance(scopedWhere)
     ]);
 
     return { items, total };
   }
 
-  async getById(id: string) {
+  async getById(user: { role: RoleName; employeeId?: string | null; departmentId?: string | null }, id: string) {
     const record = await this.repository.findById(id);
     if (!record) {
       throw notFound('Attendance record not found');
     }
+    if (!this.canAccess(user, record)) {
+      throw forbidden();
+    }
     return record;
   }
 
-  async create(input: {
+  async create(user: { userId: string; role: RoleName; employeeId?: string | null; departmentId?: string | null }, input: {
     employeeId: string;
     departmentId?: string | null;
     attendanceDate: string;
@@ -65,7 +113,11 @@ export class AttendanceService {
     checkOutAt?: string | null;
     comment?: string | null;
     source?: string | null;
-  }, userId?: string) {
+  }) {
+    if (!this.canAccess(user, { employeeId: input.employeeId, departmentId: input.departmentId })) {
+      throw forbidden();
+    }
+
     const attendanceDate = new Date(input.attendanceDate);
     const existing = await this.repository.findByUnique(input.employeeId, attendanceDate);
     if (existing) {
@@ -85,11 +137,11 @@ export class AttendanceService {
       checkOutAt: input.checkOutAt ? new Date(input.checkOutAt) : undefined,
       comment: input.comment,
       source: input.source,
-      recordedByUser: userId ? { connect: { id: userId } } : undefined
+      recordedByUser: { connect: { id: user.userId } }
     });
 
     void recordAudit({
-      actorUserId: userId,
+      actorUserId: user.userId,
       action: 'CREATE',
       resource: 'attendance',
       resourceId: created.id
@@ -98,8 +150,8 @@ export class AttendanceService {
     return created;
   }
 
-  async update(id: string, input: Record<string, unknown>) {
-    const record = await this.getById(id);
+  async update(user: { userId: string; role: RoleName; employeeId?: string | null; departmentId?: string | null }, id: string, input: Record<string, unknown>) {
+    const record = await this.getById(user, id);
     const data: Prisma.AttendanceRecordUpdateInput = {};
 
     if (typeof input.departmentId === 'string') data.department = { connect: { id: input.departmentId } };
@@ -117,17 +169,21 @@ export class AttendanceService {
 
     const updated = await this.repository.update(id, data);
     void recordAudit({
+      actorUserId: user.userId,
       action: 'UPDATE',
       resource: 'attendance',
-      resourceId: id
+      resourceId: id,
+      beforeData: record,
+      afterData: updated
     });
     return updated;
   }
 
-  async remove(id: string) {
-    await this.getById(id);
+  async remove(user: { userId: string; role: RoleName; employeeId?: string | null; departmentId?: string | null }, id: string) {
+    await this.getById(user, id);
     const removed = await this.repository.remove(id);
     void recordAudit({
+      actorUserId: user.userId,
       action: 'DELETE',
       resource: 'attendance',
       resourceId: id
@@ -135,7 +191,7 @@ export class AttendanceService {
     return removed;
   }
 
-  async summary(filters: { departmentId?: string; employeeId?: string; from?: string; to?: string }) {
+  async summary(user: { role: RoleName; employeeId?: string | null; departmentId?: string | null }, filters: { departmentId?: string; employeeId?: string; from?: string; to?: string }) {
     const where: Prisma.AttendanceRecordWhereInput = {};
     if (filters.departmentId) where.departmentId = filters.departmentId;
     if (filters.employeeId) where.employeeId = filters.employeeId;
@@ -145,7 +201,7 @@ export class AttendanceService {
       if (filters.to) where.attendanceDate.lte = new Date(filters.to);
     }
 
-    const [present, absent, late, total, byDepartment] = await this.repository.summary(where);
+    const [present, absent, late, total, byDepartment] = await this.repository.summary(this.applyScope(where, user));
 
     return {
       present,

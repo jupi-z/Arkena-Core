@@ -6,7 +6,7 @@ export class DocumentsController {
   constructor(private readonly service = new DocumentsService()) {}
 
   list = async (req: Request, res: Response) => {
-    const result = await this.service.list(req.query as unknown as any);
+    const result = await this.service.list(req.auth!, req.query as unknown as any);
     res.json(ok(result.items, {
       page: Number(req.query.page ?? 1),
       limit: Number(req.query.limit ?? 20),
@@ -16,7 +16,7 @@ export class DocumentsController {
   };
 
   getById = async (req: Request, res: Response) => {
-    const result = await this.service.getById(String(req.params.id));
+    const result = await this.service.getById(req.auth!, String(req.params.id));
     res.json(ok(result));
   };
 
