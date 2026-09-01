@@ -6,7 +6,7 @@ Last updated: 2026-09-02
 
 - Scope completion: **100%**
 - Production readiness: **99%**
-- Current active workstream: **Sensitive user session revocation completed**
+- Current active workstream: **Standardized upload error handling completed**
 - Current task progress: **100%**
 
 ## What Is Done
@@ -18,6 +18,7 @@ Last updated: 2026-09-02
 - RBAC permissions model implemented
 - User account creation and secure soft-deactivation implemented
 - Sensitive user status and role changes revoke active refresh-token sessions
+- Multer upload failures return standardized API errors, including `413 FILE_TOO_LARGE`
 - Audit records automatically inherit request IP and user-agent metadata when available
 - Audit and notification responses use safe related-user projections without password hashes
 - Notification read actions are scoped to the authenticated recipient
@@ -32,6 +33,7 @@ Last updated: 2026-09-02
 - User service responses are sanitized to prevent password hash and refresh token exposure
 - User lifecycle tests cover secure creation, response sanitization and session revocation on suspension
 - User security tests cover refresh-token revocation on non-active status and role changes
+- Error handler tests cover oversized upload normalization
 - Request context tests prove audit metadata survives asynchronous request handling
 - Notification tests cover recipient-scoped read updates and unauthorized existence hiding
 - Department service tests cover pagination and audit-safe mutation preloading
@@ -81,6 +83,7 @@ Last updated: 2026-09-02
 - Notification release E2E: pass
 - Department service tests: pass
 - Sensitive user session revocation tests: pass
+- Standardized upload error tests: pass
 - Production environment validator: pass
 - Lightweight load check: pass
 - Compose staging config: pass

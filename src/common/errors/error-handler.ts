@@ -7,6 +7,15 @@ function isPrismaKnownRequestError(error: unknown): error is { code: string; met
   return typeof error === 'object' && error !== null && 'code' in error && typeof (error as { code?: unknown }).code === 'string';
 }
 
+function isMulterError(error: unknown): error is { name: string; code: string } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { name?: unknown }).name === 'MulterError' &&
+    typeof (error as { code?: unknown }).code === 'string'
+  );
+}
+
 export const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
   if (error instanceof ZodError) {
     return res.status(400).json({
@@ -27,6 +36,18 @@ export const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
         code: error.code,
         message: error.message,
         details: error.details,
+        requestId: req.requestContext?.requestId
+      }
+    });
+  }
+
+  if (isMulterError(error)) {
+    const fileTooLarge = error.code === 'LIMIT_FILE_SIZE';
+    return res.status(fileTooLarge ? 413 : 400).json({
+      success: false,
+      error: {
+        code: fileTooLarge ? 'FILE_TOO_LARGE' : 'UPLOAD_ERROR',
+        message: fileTooLarge ? 'Uploaded file is too large' : 'File upload failed',
         requestId: req.requestContext?.requestId
       }
     });
