@@ -8,6 +8,8 @@ const baseUrl = process.env.E2E_BASE_URL ?? 'http://127.0.0.1:3002';
 const runId = randomUUID().slice(0, 8).toUpperCase();
 const adminEmail = process.env.DEFAULT_SUPER_ADMIN_EMAIL ?? 'admin@arkena.local';
 const adminPassword = process.env.DEFAULT_SUPER_ADMIN_PASSWORD ?? 'ChangeMe123!';
+const managerEmail = 'manager@arkena.local';
+const managerPassword = 'Manager123!';
 const currentDay = new Date().toISOString().slice(0, 10);
 
 type Session = {
@@ -40,6 +42,7 @@ type DashboardOverview = {
 
 const state = {
   adminSession: null as Session | null,
+  managerSession: null as Session | null,
   created: {
     attendanceIds: [] as string[]
   } as CreatedRecord,
@@ -101,6 +104,13 @@ e2eDescribe('Release e2e', () => {
   beforeAll(async () => {
     await ensureHealthyBase();
     state.adminSession = await bootstrapAdminSession();
+    const managerLoginResponse = await request(baseUrl).post('/auth/login').send({
+      email: managerEmail,
+      password: managerPassword
+    });
+
+    expect(managerLoginResponse.status).toBe(200);
+    state.managerSession = managerLoginResponse.body.data as Session;
 
     const refreshResponse = await request(baseUrl).post('/auth/refresh').send({
       refreshToken: state.adminSession.refreshToken
@@ -175,6 +185,35 @@ e2eDescribe('Release e2e', () => {
       .post('/auth/logout')
       .send({ refreshToken: state.adminSession.refreshToken })
       .catch(() => undefined);
+
+    if (state.managerSession) {
+      await request(baseUrl)
+        .post('/auth/logout')
+        .send({ refreshToken: state.managerSession.refreshToken })
+        .catch(() => undefined);
+    }
+  });
+
+  it('scopes manager dashboard statistics to the managed department', async () => {
+    const dashboardResponse = await request(baseUrl)
+      .get('/dashboard/overview')
+      .set('Authorization', `Bearer ${state.managerSession?.accessToken}`);
+
+    expect(dashboardResponse.status).toBe(200);
+    expect(dashboardResponse.body).toMatchObject({
+      success: true,
+      data: {
+        departments: [
+          expect.objectContaining({
+            name: 'Operations'
+          })
+        ]
+      }
+    });
+
+    const overview = dashboardResponse.body.data as DashboardOverview;
+    expect(overview.departments).toHaveLength(1);
+    expect(overview.totalEmployees).toBe(overview.departments[0].employeeCount);
   });
 
   it('returns attendance summary and dashboard statistics from real API data', async () => {
