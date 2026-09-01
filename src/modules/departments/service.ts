@@ -32,34 +32,43 @@ export class DepartmentsService {
     return department;
   }
 
-  async create(input: { code: string; name: string; description?: string | null; managerEmployeeId?: string | null }) {
-    const created = await this.repository.create(input);
+  async create(input: { code: string; name: string; description?: string | null; managerEmployeeId?: string | null; actorUserId?: string }) {
+    const { actorUserId, ...departmentData } = input;
+    const created = await this.repository.create(departmentData);
     void recordAudit({
+      actorUserId,
       action: 'CREATE',
       resource: 'department',
-      resourceId: created.id
+      resourceId: created.id,
+      afterData: created
     });
     return created;
   }
 
-  async update(id: string, input: { name?: string; description?: string | null; managerEmployeeId?: string | null }) {
-    await this.getById(id);
+  async update(id: string, input: { name?: string; description?: string | null; managerEmployeeId?: string | null }, actorUserId?: string) {
+    const before = await this.getById(id);
     const updated = await this.repository.update(id, input);
     void recordAudit({
+      actorUserId,
       action: 'UPDATE',
       resource: 'department',
-      resourceId: id
+      resourceId: id,
+      beforeData: before,
+      afterData: updated
     });
     return updated;
   }
 
-  async remove(id: string) {
-    await this.getById(id);
+  async remove(id: string, actorUserId?: string) {
+    const before = await this.getById(id);
     const removed = await this.repository.remove(id);
     void recordAudit({
+      actorUserId,
       action: 'DELETE',
       resource: 'department',
-      resourceId: id
+      resourceId: id,
+      beforeData: before,
+      afterData: removed
     });
     return removed;
   }
