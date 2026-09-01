@@ -37,8 +37,10 @@ const permissionCatalog = [
 const rolePermissions: Record<RoleName, readonly string[]> = {
   SUPER_ADMIN: permissionCatalog,
   ADMIN: [
+    'user:create',
     'user:read',
     'user:update',
+    'user:delete',
     'employee:create',
     'employee:read',
     'employee:update',
