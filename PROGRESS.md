@@ -5,8 +5,8 @@ Last updated: 2026-09-01
 ## Global Progress
 
 - Scope completion: **100%**
-- Production readiness: **95%**
-- Current active workstream: **Production operations package completed**
+- Production readiness: **97%**
+- Current active workstream: **Resource-level RBAC hardening completed**
 - Current task progress: **100%**
 
 ## What Is Done
@@ -16,11 +16,13 @@ Last updated: 2026-09-01
 - Prisma schema, seed and initial migration in place
 - Auth with JWT access/refresh tokens implemented
 - RBAC permissions model implemented
+- Resource-level authorization enforced for employee, attendance and document access scopes
 - Core modules created: users, employees, departments, attendance, documents, notifications, audit, dashboard
 - OpenAPI docs published at `/docs`
 - OpenAPI spec expanded with reusable schemas and endpoint coverage for the core API
 - Unit tests passing
 - Auth and core service coverage expanded for logout, logout-all, reset flow, forgot-password, profile retrieval, attendance summary, and secure document upload
+- Resource-level RBAC tests added for manager and employee data boundaries
 - Local runtime boot proven on a free port
 - Docker Compose boot proven on a free host port with live `/health` response
 - GitHub Actions CI added for build, tests, and Docker Compose smoke validation
@@ -56,6 +58,7 @@ Last updated: 2026-09-01
 - Live release smoke: pass
 - Metrics endpoint: pass
 - Dependency audit: pass
+- Resource-level RBAC tests: pass
 - Production environment validator: pass
 - Lightweight load check: pass
 - Compose staging config: pass

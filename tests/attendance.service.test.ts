@@ -19,11 +19,16 @@ describe('AttendanceService', () => {
     await expect(
       service.create(
         {
+          userId: 'user-1',
+          role: 'HR',
+          employeeId: 'emp-1',
+          departmentId: 'dept-1'
+        },
+        {
           employeeId: 'emp-1',
           attendanceDate: '2026-08-25T00:00:00.000Z',
           status: 'PRESENT'
-        },
-        'user-1'
+        }
       )
     ).rejects.toThrow(/already exists/i);
   });
@@ -43,12 +48,17 @@ describe('AttendanceService', () => {
     const service = new AttendanceService(repository as any);
     const result = await service.create(
       {
+        userId: 'user-1',
+        role: 'HR',
+        employeeId: 'emp-1',
+        departmentId: 'dept-1'
+      },
+      {
         employeeId: 'emp-1',
         attendanceDate: '2026-08-25T00:00:00.000Z',
         status: 'PRESENT',
         comment: 'On time'
-      },
-      'user-1'
+      }
     );
 
     expect(repository.create).toHaveBeenCalledOnce();
@@ -79,12 +89,15 @@ describe('AttendanceService', () => {
     };
 
     const service = new AttendanceService(repository as any);
-    const result = await service.summary({
-      departmentId: 'dept-1',
-      employeeId: 'emp-1',
-      from: '2026-08-01T00:00:00.000Z',
-      to: '2026-08-31T23:59:59.999Z'
-    });
+    const result = await service.summary(
+      { role: 'ADMIN' },
+      {
+        departmentId: 'dept-1',
+        employeeId: 'emp-1',
+        from: '2026-08-01T00:00:00.000Z',
+        to: '2026-08-31T23:59:59.999Z'
+      }
+    );
 
     expect(repository.summary).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -123,5 +136,77 @@ describe('AttendanceService', () => {
         }
       }
     });
+  });
+
+  it('scopes employee attendance lists to their own employee id', async () => {
+    const repository = {
+      findByUnique: vi.fn(),
+      create: vi.fn(),
+      listAttendance: vi.fn().mockResolvedValue([]),
+      countAttendance: vi.fn().mockResolvedValue(0),
+      findById: vi.fn(),
+      update: vi.fn(),
+      remove: vi.fn(),
+      summary: vi.fn()
+    };
+
+    const service = new AttendanceService(repository as any);
+    await service.list(
+      {
+        role: 'EMPLOYEE',
+        employeeId: 'emp-1',
+        departmentId: 'dept-1'
+      },
+      {
+        page: 1,
+        limit: 20,
+        sortOrder: 'desc'
+      }
+    );
+
+    expect(repository.listAttendance).toHaveBeenCalledWith(
+      expect.objectContaining({
+        AND: expect.arrayContaining([
+          expect.objectContaining({
+            employeeId: 'emp-1'
+          })
+        ])
+      }),
+      0,
+      20,
+      expect.any(Object)
+    );
+  });
+
+  it('forbids managers from creating attendance outside their department', async () => {
+    const repository = {
+      findByUnique: vi.fn(),
+      create: vi.fn(),
+      listAttendance: vi.fn(),
+      countAttendance: vi.fn(),
+      findById: vi.fn(),
+      update: vi.fn(),
+      remove: vi.fn(),
+      summary: vi.fn()
+    };
+
+    const service = new AttendanceService(repository as any);
+
+    await expect(
+      service.create(
+        {
+          userId: 'user-1',
+          role: 'MANAGER',
+          employeeId: 'manager-employee',
+          departmentId: 'dept-1'
+        },
+        {
+          employeeId: 'emp-2',
+          departmentId: 'dept-2',
+          attendanceDate: '2026-08-25T00:00:00.000Z',
+          status: 'PRESENT'
+        }
+      )
+    ).rejects.toThrow(/forbidden/i);
   });
 });
