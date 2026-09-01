@@ -101,4 +101,47 @@ describe('UsersService', () => {
     expect(result.status).toBe('SUSPENDED');
     expect(result).not.toHaveProperty('refreshTokens');
   });
+
+  it('revokes active sessions when an update disables a user', async () => {
+    const inactiveUser = {
+      ...baseUser,
+      status: 'INACTIVE' as const
+    };
+    const repository = {
+      listUsers: vi.fn(),
+      countUsers: vi.fn(),
+      findUserById: vi.fn().mockResolvedValue(baseUser),
+      createUser: vi.fn(),
+      updateUser: vi.fn().mockResolvedValue(inactiveUser),
+      revokeRefreshTokensForUser: vi.fn().mockResolvedValue({ count: 1 })
+    };
+
+    const service = new UsersService(repository as any);
+    const result = await service.update('user-1', { status: 'INACTIVE' }, 'admin-1');
+
+    expect(repository.revokeRefreshTokensForUser).toHaveBeenCalledWith('user-1');
+    expect(result.status).toBe('INACTIVE');
+  });
+
+  it('revokes active sessions when a role changes', async () => {
+    const hrUser = {
+      ...baseUser,
+      role: 'HR' as const
+    };
+    const repository = {
+      listUsers: vi.fn(),
+      countUsers: vi.fn(),
+      findUserById: vi.fn().mockResolvedValue(baseUser),
+      createUser: vi.fn(),
+      updateUser: vi.fn().mockResolvedValue(hrUser),
+      revokeRefreshTokensForUser: vi.fn().mockResolvedValue({ count: 1 })
+    };
+
+    const service = new UsersService(repository as any);
+    const result = await service.assignRole('user-1', 'HR', 'admin-1');
+
+    expect(repository.updateUser).toHaveBeenCalledWith('user-1', { role: 'HR' });
+    expect(repository.revokeRefreshTokensForUser).toHaveBeenCalledWith('user-1');
+    expect(result.role).toBe('HR');
+  });
 });
