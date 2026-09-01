@@ -56,9 +56,19 @@ export class NotificationsService {
     return created;
   }
 
-  async markRead(id: string) {
-    const updated = await this.repository.markRead(id);
+  async markRead(id: string, userId: string) {
+    const result = await this.repository.markRead(id, userId);
+    if (result.count === 0) {
+      throw notFound('Notification not found');
+    }
+
+    const updated = await this.repository.findById(id);
+    if (!updated) {
+      throw notFound('Notification not found');
+    }
+
     void recordAudit({
+      actorUserId: userId,
       action: 'UPDATE',
       resource: 'notification',
       resourceId: id,

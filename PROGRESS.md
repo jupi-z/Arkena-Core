@@ -6,7 +6,7 @@ Last updated: 2026-09-02
 
 - Scope completion: **100%**
 - Production readiness: **99%**
-- Current active workstream: **Automatic audit request metadata completed**
+- Current active workstream: **Safe related-user serialization and notification scoping completed**
 - Current task progress: **100%**
 
 ## What Is Done
@@ -18,6 +18,8 @@ Last updated: 2026-09-02
 - RBAC permissions model implemented
 - User account creation and secure soft-deactivation implemented
 - Audit records automatically inherit request IP and user-agent metadata when available
+- Audit and notification responses use safe related-user projections without password hashes
+- Notification read actions are scoped to the authenticated recipient
 - Resource-level authorization enforced for employee, attendance and document access scopes
 - Dashboard statistics are scoped by role so managers only see their managed department
 - Core modules created: users, employees, departments, attendance, documents, notifications, audit, dashboard
@@ -28,6 +30,7 @@ Last updated: 2026-09-02
 - User service responses are sanitized to prevent password hash and refresh token exposure
 - User lifecycle tests cover secure creation, response sanitization and session revocation on suspension
 - Request context tests prove audit metadata survives asynchronous request handling
+- Notification tests cover recipient-scoped read updates and unauthorized existence hiding
 - Resource-level RBAC tests added for manager and employee data boundaries
 - Dashboard scope tests and release E2E coverage added for manager department isolation
 - Local runtime boot proven on a free port
@@ -70,6 +73,8 @@ Last updated: 2026-09-02
 - Manager-scoped dashboard release E2E: pass
 - Secure user lifecycle release E2E: pass
 - Automatic audit request metadata tests: pass
+- Notification scoped read tests: pass
+- Notification release E2E: pass
 - Production environment validator: pass
 - Lightweight load check: pass
 - Compose staging config: pass
