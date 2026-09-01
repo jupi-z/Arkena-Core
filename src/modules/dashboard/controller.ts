@@ -5,18 +5,18 @@ import { DashboardService } from './service.js';
 export class DashboardController {
   constructor(private readonly service = new DashboardService()) {}
 
-  overview = async (_req: Request, res: Response) => {
-    const result = await this.service.overview();
+  overview = async (req: Request, res: Response) => {
+    const result = await this.service.overview(req.auth!);
     res.json(ok(result));
   };
 
-  employees = async (_req: Request, res: Response) => {
-    const result = await this.service.employees();
+  employees = async (req: Request, res: Response) => {
+    const result = await this.service.employees(req.auth!);
     res.json(ok(result));
   };
 
-  attendance = async (_req: Request, res: Response) => {
-    const result = await this.service.attendance();
+  attendance = async (req: Request, res: Response) => {
+    const result = await this.service.attendance(req.auth!);
     res.json(ok(result));
   };
 }
