@@ -126,13 +126,19 @@ export class UsersService {
     }
 
     const updated = await this.repository.updateUser(id, input);
+    const sessionsRevoked = Boolean(input.status && input.status !== 'ACTIVE' && user.status === 'ACTIVE');
+    if (sessionsRevoked) {
+      await this.repository.revokeRefreshTokensForUser(id);
+    }
+
     void recordAudit({
       actorUserId,
       action: 'UPDATE',
       resource: 'user',
       resourceId: id,
       beforeData: this.serializeUser(user),
-      afterData: this.serializeUser(updated)
+      afterData: this.serializeUser(updated),
+      metadata: sessionsRevoked ? { sessionsRevoked: true, reason: 'status-change' } : undefined
     });
     return this.serializeUser(updated);
   }
@@ -144,6 +150,7 @@ export class UsersService {
     }
 
     const updated = await this.repository.updateUser(id, { role });
+    await this.repository.revokeRefreshTokensForUser(id);
     void recordAudit({
       actorUserId,
       action: 'ASSIGN',
@@ -152,7 +159,9 @@ export class UsersService {
       beforeData: this.serializeUser(user),
       afterData: this.serializeUser(updated),
       metadata: {
-        role
+        role,
+        sessionsRevoked: true,
+        reason: 'role-change'
       }
     });
     return this.serializeUser(updated);

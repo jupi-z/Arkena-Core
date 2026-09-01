@@ -6,7 +6,7 @@ Last updated: 2026-09-02
 
 - Scope completion: **100%**
 - Production readiness: **99%**
-- Current active workstream: **Department audit enrichment completed**
+- Current active workstream: **Sensitive user session revocation completed**
 - Current task progress: **100%**
 
 ## What Is Done
@@ -17,6 +17,7 @@ Last updated: 2026-09-02
 - Auth with JWT access/refresh tokens implemented
 - RBAC permissions model implemented
 - User account creation and secure soft-deactivation implemented
+- Sensitive user status and role changes revoke active refresh-token sessions
 - Audit records automatically inherit request IP and user-agent metadata when available
 - Audit and notification responses use safe related-user projections without password hashes
 - Notification read actions are scoped to the authenticated recipient
@@ -30,6 +31,7 @@ Last updated: 2026-09-02
 - Auth and core service coverage expanded for logout, logout-all, reset flow, forgot-password, profile retrieval, attendance summary, and secure document upload
 - User service responses are sanitized to prevent password hash and refresh token exposure
 - User lifecycle tests cover secure creation, response sanitization and session revocation on suspension
+- User security tests cover refresh-token revocation on non-active status and role changes
 - Request context tests prove audit metadata survives asynchronous request handling
 - Notification tests cover recipient-scoped read updates and unauthorized existence hiding
 - Department service tests cover pagination and audit-safe mutation preloading
@@ -78,6 +80,7 @@ Last updated: 2026-09-02
 - Notification scoped read tests: pass
 - Notification release E2E: pass
 - Department service tests: pass
+- Sensitive user session revocation tests: pass
 - Production environment validator: pass
 - Lightweight load check: pass
 - Compose staging config: pass
