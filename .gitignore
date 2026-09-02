@@ -6,6 +6,7 @@ coverage
 uploads
 uploads-test
 backups
+backups-*
 secrets
 *.log
 prisma/dev.db
