@@ -732,6 +732,7 @@ export const openApiSpec = {
         },
         responses: {
           200: messageResponse('Password changed'),
+          429: authRateLimitResponse,
           ...authErrorResponses
         }
       }

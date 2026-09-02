@@ -46,5 +46,5 @@ authRoutes.post('/logout', validateRequest({ body: refreshSchema }), asyncHandle
 authRoutes.post('/logout-all', authenticate, asyncHandler(controller.logoutAll));
 authRoutes.post('/forgot-password', authRateLimit, validateRequest({ body: forgotPasswordSchema }), asyncHandler(controller.forgotPassword));
 authRoutes.post('/reset-password', authRateLimit, validateRequest({ body: resetPasswordSchema }), asyncHandler(controller.resetPassword));
-authRoutes.post('/change-password', authenticate, validateRequest({ body: changePasswordSchema }), asyncHandler(controller.changePassword));
+authRoutes.post('/change-password', authenticate, authRateLimit, validateRequest({ body: changePasswordSchema }), asyncHandler(controller.changePassword));
 authRoutes.get('/me', authenticate, asyncHandler(controller.me));
