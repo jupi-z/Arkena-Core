@@ -11,9 +11,14 @@ on:
       - develop
   workflow_dispatch:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -49,6 +54,7 @@ jobs:
 
   docker-compose:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: test
     env:
       COMPOSE_PROJECT_NAME: arkena_ci
@@ -66,10 +72,10 @@ jobs:
         run: cp .env.example .env
 
       - name: Build API image
-        run: docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml build
+        run: timeout 10m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml build
 
       - name: Start database
-        run: docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml up -d db
+        run: timeout 2m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml up -d db
 
       - name: Wait for database
         run: |
@@ -85,13 +91,13 @@ jobs:
           exit 1
 
       - name: Run migrations
-        run: docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml run --rm --no-deps api npm run prisma:migrate:deploy
+        run: timeout 3m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml run --rm --no-deps api npm run prisma:migrate:deploy
 
       - name: Run seed
-        run: docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml run --rm --no-deps api npm run prisma:seed
+        run: timeout 3m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml run --rm --no-deps api npm run prisma:seed
 
       - name: Start API
-        run: docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml up -d --no-deps api
+        run: timeout 2m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml up -d --no-deps api
 
       - name: Wait for API readiness
         run: |
@@ -108,19 +114,19 @@ jobs:
           exit 1
 
       - name: Verify docs
-        run: docker run --rm --network "${COMPOSE_PROJECT_NAME}_default" "$PROBE_IMAGE" -fsS "$API_BASE_URL/docs/" > /dev/null
+        run: timeout 1m docker run --rm --network "${COMPOSE_PROJECT_NAME}_default" "$PROBE_IMAGE" -fsS "$API_BASE_URL/docs/" > /dev/null
 
       - name: Verify metrics
-        run: docker run --rm --network "${COMPOSE_PROJECT_NAME}_default" "$PROBE_IMAGE" -fsS "$API_BASE_URL/metrics" | grep arkena_http_requests_total
+        run: timeout 1m docker run --rm --network "${COMPOSE_PROJECT_NAME}_default" "$PROBE_IMAGE" -fsS "$API_BASE_URL/metrics" | grep arkena_http_requests_total
 
       - name: Run backup and restore drill
         run: |
           mkdir -p backups
-          sh scripts/backup-postgres.sh
+          timeout 2m sh scripts/backup-postgres.sh
           latest_backup="$(find backups -maxdepth 1 -type f -name '*.dump' | sort | tail -n 1)"
-          docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml stop api
-          ALLOW_RESTORE=true sh scripts/restore-postgres.sh "$latest_backup"
-          docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml up -d --no-deps api
+          timeout 1m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml stop api
+          ALLOW_RESTORE=true timeout 3m sh scripts/restore-postgres.sh "$latest_backup"
+          timeout 2m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml up -d --no-deps api
           for attempt in $(seq 1 30); do
             if docker run --rm --network "${COMPOSE_PROJECT_NAME}_default" "$PROBE_IMAGE" -fsS "$API_BASE_URL/health/ready"; then
               exit 0
@@ -134,7 +140,7 @@ jobs:
 
       - name: Run lightweight load check
         run: |
-          docker run --rm \
+            timeout 3m docker run --rm \
             --network "${COMPOSE_PROJECT_NAME}_default" \
             -v "$PWD:/workspace" \
             -w /workspace \
@@ -149,7 +155,7 @@ jobs:
 
       - name: Run release E2E
         run: |
-          docker run --rm \
+            timeout 8m docker run --rm \
             --network "${COMPOSE_PROJECT_NAME}_default" \
             -v "$PWD:/workspace" \
             -v arkena_ci_e2e_node_modules:/workspace/node_modules \
@@ -157,8 +163,8 @@ jobs:
             -e RUN_RELEASE_E2E=true \
             -e E2E_BASE_URL="$E2E_BASE_URL" \
             "$NODE_RUNNER_IMAGE" \
-            sh -c "npm ci && npm run test:e2e"
+            sh -c "npm ci --no-audit --no-fund && npm run test:e2e"
 
       - name: Shutdown stack
         if: always()
-        run: docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml down -v
+        run: timeout 2m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml down -v
