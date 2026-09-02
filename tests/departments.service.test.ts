@@ -17,13 +17,20 @@ describe('DepartmentsService', () => {
       page: 2,
       limit: 10,
       search: 'ops',
-      sortOrder: 'asc'
+      sortOrder: 'asc',
+      status: 'ACTIVE'
     });
 
     expect(repository.listDepartments).toHaveBeenCalledWith(
       expect.objectContaining({
         OR: expect.any(Array)
       }),
+      10,
+      10,
+      expect.any(Object)
+    );
+    expect(repository.listDepartments).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'ACTIVE' }),
       10,
       10,
       expect.any(Object)

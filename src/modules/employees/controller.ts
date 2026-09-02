@@ -13,7 +13,7 @@ export class EmployeesController {
       sortBy?: string;
       sortOrder: 'asc' | 'desc';
       departmentId?: string;
-      status?: string;
+      status?: 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE' | 'TERMINATED' | 'ARCHIVED';
     });
     res.json(ok(result.items, {
       page: Number(req.query.page ?? 1),

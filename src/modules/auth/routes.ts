@@ -3,7 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { env } from '../../config/env.js';
 import { asyncHandler } from '../../common/middleware/async-handler.js';
 import { authenticate } from '../../common/middleware/auth.js';
-import { validateRequest } from '../../common/middleware/validation.js';
+import { validateRequest } from '../../common/validation/index.js';
 import {
   changePasswordSchema,
   forgotPasswordSchema,

@@ -12,10 +12,11 @@ export class UsersController {
       search?: string;
       sortBy?: string;
       sortOrder: 'asc' | 'desc';
+      status?: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
     });
     res.json(ok(result.items, {
-      page: req.query.page,
-      limit: req.query.limit,
+      page: Number(req.query.page ?? 1),
+      limit: Number(req.query.limit ?? 20),
       total: result.total,
       pages: Math.max(1, Math.ceil(result.total / Number(req.query.limit ?? 20)))
     }));

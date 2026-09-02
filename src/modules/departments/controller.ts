@@ -12,6 +12,7 @@ export class DepartmentsController {
       search?: string;
       sortBy?: string;
       sortOrder: 'asc' | 'desc';
+      status?: 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE' | 'TERMINATED' | 'ARCHIVED';
     });
     res.json(ok(result.items, {
       page: Number(req.query.page ?? 1),

@@ -4,7 +4,7 @@ import { env } from '../../config/env.js';
 import { asyncHandler } from '../../common/middleware/async-handler.js';
 import { authenticate } from '../../common/middleware/auth.js';
 import { requirePermissions } from '../../common/middleware/rbac.js';
-import { validateRequest } from '../../common/middleware/validation.js';
+import { validateRequest } from '../../common/validation/index.js';
 import { documentMetadataSchema, documentQuerySchema } from './types.js';
 import { DocumentsController } from './controller.js';
 import fs from 'node:fs';

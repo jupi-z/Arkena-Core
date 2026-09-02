@@ -7,7 +7,7 @@ import { DepartmentsRepository } from './repository.js';
 export class DepartmentsService {
   constructor(private readonly repository = new DepartmentsRepository()) {}
 
-  async list(query: { page: number; limit: number; search?: string; sortBy?: string; sortOrder: 'asc' | 'desc' }) {
+  async list(query: { page: number; limit: number; search?: string; sortBy?: string; sortOrder: 'asc' | 'desc'; status?: 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE' | 'TERMINATED' | 'ARCHIVED' }) {
     const where: Prisma.DepartmentWhereInput = {};
     if (query.search) {
       where.OR = [
@@ -15,6 +15,7 @@ export class DepartmentsService {
         { name: { contains: query.search, mode: 'insensitive' } }
       ];
     }
+    if (query.status) where.status = query.status;
 
     const sortBy = query.sortBy && ['code', 'name', 'createdAt'].includes(query.sortBy) ? query.sortBy : 'createdAt';
     const [items, total] = await Promise.all([

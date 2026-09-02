@@ -40,7 +40,7 @@ export class UsersService {
     };
   }
 
-  async list(query: { page: number; limit: number; search?: string; sortBy?: string; sortOrder: 'asc' | 'desc' }) {
+  async list(query: { page: number; limit: number; search?: string; sortBy?: string; sortOrder: 'asc' | 'desc'; status?: UserStatus }) {
     const where: Prisma.UserWhereInput = {};
     if (query.search) {
       where.OR = [
@@ -49,6 +49,7 @@ export class UsersService {
         { lastName: { contains: query.search, mode: 'insensitive' } }
       ];
     }
+    if (query.status) where.status = query.status;
 
     const sortBy = query.sortBy && ['email', 'firstName', 'lastName', 'createdAt'].includes(query.sortBy) ? query.sortBy : 'createdAt';
     const orderBy = { [sortBy]: query.sortOrder } as Prisma.UserOrderByWithRelationInput;
