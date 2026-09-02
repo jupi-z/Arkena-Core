@@ -1,3 +1,5 @@
 services:
   api:
     command: node dist/src/server.js
+    environment:
+      READINESS_DB_TIMEOUT_MS: 10000
