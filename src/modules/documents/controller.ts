@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import path from 'node:path';
 import { ok } from '../../common/http/response.js';
 import { DocumentsService } from './service.js';
 
@@ -27,7 +28,8 @@ export class DocumentsController {
 
   download = async (req: Request, res: Response) => {
     const result = await this.service.download(req.auth!, String(req.params.id));
-    res.setHeader('Content-Disposition', `attachment; filename="${result.document.originalName}"`);
+    const downloadName = path.basename(result.document.originalName).replace(/[\\/\r\n"]+/g, '_');
+    res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
     res.type(result.document.mimeType);
     res.send(result.file);
   };

@@ -15,6 +15,34 @@ const ALLOWED_MIME_TYPES = new Set([
   'image/webp'
 ]);
 
+const STORAGE_EXTENSIONS: Record<string, string> = {
+  'application/pdf': '.pdf',
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp'
+};
+
+function hasValidFileSignature(mimeType: string, file: Buffer): boolean {
+  if (mimeType === 'application/pdf') {
+    return file.subarray(0, 5).toString('ascii') === '%PDF-';
+  }
+
+  if (mimeType === 'image/jpeg') {
+    return file.length >= 3 && file[0] === 0xff && file[1] === 0xd8 && file[2] === 0xff;
+  }
+
+  if (mimeType === 'image/png') {
+    return file.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  }
+
+  return (
+    mimeType === 'image/webp' &&
+    file.length >= 12 &&
+    file.subarray(0, 4).toString('ascii') === 'RIFF' &&
+    file.subarray(8, 12).toString('ascii') === 'WEBP'
+  );
+}
+
 export class DocumentsService {
   constructor(private readonly repository = new DocumentsRepository()) {}
 
@@ -115,51 +143,61 @@ export class DocumentsService {
       throw forbidden();
     }
 
-    const ext = path.extname(file.originalname) || '.bin';
+    const fileBuffer = await fs.readFile(file.path);
+    if (!hasValidFileSignature(file.mimetype, fileBuffer)) {
+      await fs.unlink(file.path).catch(() => undefined);
+      throw badRequest('File content does not match its declared type');
+    }
+
+    const ext = STORAGE_EXTENSIONS[file.mimetype];
     const storageKey = `${crypto.randomUUID()}${ext}`;
     const finalPath = path.resolve(env.UPLOAD_DIR, storageKey);
 
     await fs.mkdir(path.dirname(finalPath), { recursive: true });
     await fs.rename(file.path, finalPath);
 
-    const checksum = crypto.createHash('sha256');
-    const fileBuffer = await fs.readFile(finalPath);
-    checksum.update(fileBuffer);
+    try {
+      const checksum = crypto.createHash('sha256');
+      checksum.update(fileBuffer);
 
-    const created = await this.repository.create({
-      employee: {
-        connect: {
-          id: metadata.employeeId
-        }
-      },
-      uploadedByUser: {
-        connect: {
-          id: user.userId
-        }
-      },
-      type: metadata.type,
-      title: metadata.title,
-      description: metadata.description,
-      originalName: file.originalname,
-      mimeType: file.mimetype,
-      sizeInBytes: file.size,
-      storageKey,
-      checksum: checksum.digest('hex'),
-      accessLevel: 'PRIVATE'
-    });
-
-    void recordAudit({
-      actorUserId: user.userId,
-      action: 'UPLOAD',
-      resource: 'document',
-      resourceId: created.id,
-      metadata: {
+      const created = await this.repository.create({
+        employee: {
+          connect: {
+            id: metadata.employeeId
+          }
+        },
+        uploadedByUser: {
+          connect: {
+            id: user.userId
+          }
+        },
         type: metadata.type,
-        storageKey: created.storageKey
-      }
-    });
+        title: metadata.title,
+        description: metadata.description,
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        sizeInBytes: file.size,
+        storageKey,
+        checksum: checksum.digest('hex'),
+        accessLevel: 'PRIVATE'
+      });
 
-    return created;
+      void recordAudit({
+        actorUserId: user.userId,
+        action: 'UPLOAD',
+        resource: 'document',
+        resourceId: created.id,
+        metadata: {
+          type: metadata.type,
+          storageKey: created.storageKey
+        }
+      });
+
+      return created;
+    } catch (error) {
+      await fs.unlink(finalPath).catch(() => undefined);
+      throw error;
+    }
   }
 
   async download(user: { userId: string; role: RoleName; employeeId?: string | null; departmentId?: string | null }, id: string) {

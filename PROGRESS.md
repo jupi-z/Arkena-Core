@@ -23,6 +23,7 @@ Last updated: 2026-09-02
 - Dedicated authentication rate limiting is configurable and returns standardized `429` errors
 - Privileged account creation is restricted to `SUPER_ADMIN` at the service layer
 - Multer upload failures return standardized API errors, including `413 FILE_TOO_LARGE`
+- Document uploads verify binary signatures and sanitize stored extensions/download names
 - Audit records automatically inherit request IP and user-agent metadata when available
 - Employee, attendance, document, audit and notification responses use safe related-user projections without password hashes
 - Notification read actions are scoped to the authenticated recipient
@@ -90,6 +91,7 @@ Last updated: 2026-09-02
 - Sensitive user session revocation tests: pass
 - Refresh family rotation and reuse tests: pass
 - Standardized upload error tests: pass
+- Document signature validation tests: pass
 - Authentication rate-limit response test: pass
 - Privileged user creation authorization test: pass
 - Production environment validator: pass
