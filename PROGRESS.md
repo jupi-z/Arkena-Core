@@ -6,7 +6,7 @@ Last updated: 2026-09-02
 
 - Scope completion: **100%**
 - Production readiness: **99%**
-- Current active workstream: **List filter contracts and module type boundaries completed**
+- Current active workstream: **Release validation completed; organization infrastructure remains external**
 - Current task progress: **100%**
 
 ## What Is Done
@@ -57,6 +57,9 @@ Last updated: 2026-09-02
 - Backup and restore scripts added
 - Backup/restore drill added to Docker CI
 - Lightweight load test script added with measurable latency and error-rate thresholds
+- Virgin PostgreSQL migration and seed proof completed: 1 migration, 28 permissions, 3 departments, 4 employees
+- Containerized release E2E proof completed after the latest image rebuild: 5 scenarios passed
+- Isolated load proof completed: 3,364 requests, 0 errors, p95 102 ms
 - Prisma dependency pinned to an audit-clean version
 
 ## What Remains
@@ -97,7 +100,9 @@ Last updated: 2026-09-02
 - List filter schema and service tests: pass
 - Dashboard module type boundary: pass
 - Production environment validator: pass
-- Lightweight load check: pass
+- Lightweight load check: pass (3,364 requests, 0 errors, p95 102 ms in an isolated disposable container)
+- Virgin database migration and seed: pass
+- Rebuilt container release E2E: pass (5 scenarios)
 - Compose staging config: pass
 - Compose production config: pass
 - Compose observability config: pass
