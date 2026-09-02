@@ -110,6 +110,8 @@ docker compose up
 
 The local Compose stack runs Prisma migrations and the demo seed automatically, and ships with safe development defaults for local boot. Replace them before any production use.
 
+Uploaded documents are stored in the persistent Docker volume `uploads_data`, not exposed as a public static directory. Back up this volume together with PostgreSQL before production maintenance or disaster-recovery operations.
+
 The API will be available at:
 
 - `http://localhost:3000`

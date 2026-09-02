@@ -11,15 +11,20 @@ on:
       - develop
   workflow_dispatch:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -49,84 +54,127 @@ jobs:
 
   docker-compose:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: test
     env:
       COMPOSE_PROJECT_NAME: arkena_ci
       API_PORT: 3100
       API_BASE_URL: http://127.0.0.1:3000
-      E2E_BASE_URL: http://api:3000
+      E2E_BASE_URL: http://127.0.0.1:3000
+      POSTGRES_CONTAINER_NAME: arkena_ci-db-1
+      PROBE_IMAGE: curlimages/curl:8.11.1
+      NODE_RUNNER_IMAGE: node:22-bookworm-slim
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Prepare local env
         run: cp .env.example .env
 
-      - name: Build and start stack
-        run: docker compose up -d --build
+      - name: Build API image
+        run: timeout 20m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml build
+
+      - name: Start database
+        run: timeout 2m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml up -d db
+
+      - name: Wait for database
+        run: |
+          for attempt in $(seq 1 60); do
+            if docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml exec -T db pg_isready -U postgres -d arkena_core; then
+              exit 0
+            fi
+            echo "Waiting for database readiness ($attempt/60)"
+            sleep 2
+          done
+          docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml ps
+          docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml logs db
+          exit 1
+
+      - name: Run migrations
+        run: timeout 3m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml run --rm --no-deps api npm run prisma:migrate:deploy
+
+      - name: Run seed
+        run: timeout 3m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml run --rm --no-deps api npm run prisma:seed
+
+      - name: Start API
+        run: timeout 2m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml up -d --no-deps api
 
       - name: Wait for API readiness
         run: |
+          api_container_id="$(docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml ps -q api)"
+          if [ -z "$api_container_id" ]; then
+            echo "API container was not created"
+            docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml ps
+            exit 1
+          fi
           for attempt in $(seq 1 90); do
-            if docker compose exec -T api wget -qO- "$API_BASE_URL/health/ready"; then
+            if timeout 15s docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml exec -T api wget -qO- http://127.0.0.1:3000/health/ready > /dev/null; then
               exit 0
             fi
             echo "Waiting for API readiness ($attempt/90)"
             sleep 2
           done
           echo "API did not become ready in time"
-          docker compose ps
-          docker compose logs
+          docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml ps
+          docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml logs
           exit 1
 
       - name: Verify docs
-        run: docker compose exec -T api wget -qO- "$API_BASE_URL/docs/" > /dev/null
+        run: |
+          timeout 1m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml exec -T api wget -qO- http://127.0.0.1:3000/docs/ > /dev/null
 
       - name: Verify metrics
-        run: docker compose exec -T api wget -qO- "$API_BASE_URL/metrics" | grep arkena_http_requests_total
+        run: |
+          timeout 1m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml exec -T api wget -qO- http://127.0.0.1:3000/metrics | grep arkena_http_requests_total
 
       - name: Run backup and restore drill
         run: |
           mkdir -p backups
-          sh scripts/backup-postgres.sh
+          timeout 2m sh scripts/backup-postgres.sh
           latest_backup="$(find backups -maxdepth 1 -type f -name '*.dump' | sort | tail -n 1)"
-          docker compose stop api
-          ALLOW_RESTORE=true sh scripts/restore-postgres.sh "$latest_backup"
-          docker compose up -d api
+          timeout 1m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml stop api
+          ALLOW_RESTORE=true timeout 3m sh scripts/restore-postgres.sh "$latest_backup"
+          timeout 2m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml up -d --no-deps api
           for attempt in $(seq 1 30); do
-            if docker compose exec -T api wget -qO- "$API_BASE_URL/health/ready"; then
+            if timeout 15s docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml exec -T api wget -qO- http://127.0.0.1:3000/health/ready > /dev/null; then
               exit 0
             fi
             echo "Waiting for API readiness after restore ($attempt/30)"
             sleep 2
           done
-          docker compose ps
-          docker compose logs
+          docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml ps
+          docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml logs
           exit 1
 
       - name: Run lightweight load check
         run: |
-          docker compose exec -T \
+          api_container_id="$(docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml ps -q api)"
+          timeout 3m docker run --rm \
+            --network "container:${api_container_id}" \
+            -v "$PWD:/workspace" \
+            -w /workspace \
             -e LOAD_TEST_BASE_URL="$API_BASE_URL" \
             -e LOAD_TEST_PATH=/health/ready \
             -e LOAD_TEST_DURATION_SECONDS=5 \
             -e LOAD_TEST_CONCURRENCY=4 \
             -e LOAD_TEST_MAX_P95_MS=1000 \
             -e LOAD_TEST_MAX_ERROR_RATE=0 \
-            api node scripts/load-test.mjs
+            "$NODE_RUNNER_IMAGE" \
+            node scripts/load-test.mjs
 
       - name: Run release E2E
         run: |
-          docker run --rm \
-            --network "${COMPOSE_PROJECT_NAME}_default" \
+          api_container_id="$(docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml ps -q api)"
+          timeout 8m docker run --rm \
+            --network "container:${api_container_id}" \
             -v "$PWD:/workspace" \
             -v arkena_ci_e2e_node_modules:/workspace/node_modules \
             -w /workspace \
             -e RUN_RELEASE_E2E=true \
             -e E2E_BASE_URL="$E2E_BASE_URL" \
-            node:22-bookworm-slim \
-            sh -c "npm ci && npm run test:e2e"
+            "$NODE_RUNNER_IMAGE" \
+            sh -c "npm ci --no-audit --no-fund && npm run test:e2e"
 
       - name: Shutdown stack
         if: always()
-        run: docker compose down -v
+        run: timeout 2m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml down -v
