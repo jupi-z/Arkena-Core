@@ -1,0 +1,3 @@
+services:
+  api:
+    command: node dist/src/server.js

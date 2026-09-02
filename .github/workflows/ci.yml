@@ -55,6 +55,7 @@ jobs:
       API_PORT: 3100
       API_BASE_URL: http://api:3000
       E2E_BASE_URL: http://api:3000
+      POSTGRES_CONTAINER_NAME: arkena_ci-db-1
       PROBE_IMAGE: curlimages/curl:8.11.1
       NODE_RUNNER_IMAGE: node:22-bookworm-slim
     steps:
@@ -64,8 +65,33 @@ jobs:
       - name: Prepare local env
         run: cp .env.example .env
 
-      - name: Build and start stack
-        run: docker compose up -d --build
+      - name: Build API image
+        run: docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml build
+
+      - name: Start database
+        run: docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml up -d db
+
+      - name: Wait for database
+        run: |
+          for attempt in $(seq 1 60); do
+            if docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml exec -T db pg_isready -U postgres -d arkena_core; then
+              exit 0
+            fi
+            echo "Waiting for database readiness ($attempt/60)"
+            sleep 2
+          done
+          docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml ps
+          docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml logs db
+          exit 1
+
+      - name: Run migrations
+        run: docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml run --rm --no-deps api npm run prisma:migrate:deploy
+
+      - name: Run seed
+        run: docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml run --rm --no-deps api npm run prisma:seed
+
+      - name: Start API
+        run: docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml up -d --no-deps api
 
       - name: Wait for API readiness
         run: |
@@ -77,8 +103,8 @@ jobs:
             sleep 2
           done
           echo "API did not become ready in time"
-          docker compose ps
-          docker compose logs
+          docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml ps
+          docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml logs
           exit 1
 
       - name: Verify docs
@@ -92,9 +118,9 @@ jobs:
           mkdir -p backups
           sh scripts/backup-postgres.sh
           latest_backup="$(find backups -maxdepth 1 -type f -name '*.dump' | sort | tail -n 1)"
-          docker compose stop api
+          docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml stop api
           ALLOW_RESTORE=true sh scripts/restore-postgres.sh "$latest_backup"
-          docker compose up -d api
+          docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml up -d --no-deps api
           for attempt in $(seq 1 30); do
             if docker run --rm --network "${COMPOSE_PROJECT_NAME}_default" "$PROBE_IMAGE" -fsS "$API_BASE_URL/health/ready"; then
               exit 0
@@ -102,8 +128,8 @@ jobs:
             echo "Waiting for API readiness after restore ($attempt/30)"
             sleep 2
           done
-          docker compose ps
-          docker compose logs
+          docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml ps
+          docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml logs
           exit 1
 
       - name: Run lightweight load check
@@ -135,4 +161,4 @@ jobs:
 
       - name: Shutdown stack
         if: always()
-        run: docker compose down -v
+        run: docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml down -v
