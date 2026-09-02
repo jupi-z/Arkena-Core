@@ -18,6 +18,8 @@
 - secure document download endpoints
 - file size limits
 - file type limits
+- binary signature checks for accepted document types
+- sanitized download filenames
 - standardized upload errors for file-size failures
 - non-revealing error responses
 - structured request ids in logs and error payloads

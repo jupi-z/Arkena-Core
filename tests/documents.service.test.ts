@@ -212,4 +212,44 @@ describe('DocumentsService', () => {
     await expect(fs.stat(tempFile)).rejects.toThrow();
     await expect(fs.stat(path.resolve(env.UPLOAD_DIR, result.storageKey))).resolves.toBeDefined();
   });
+
+  it('rejects a file whose content does not match its declared mime type', async () => {
+    const repository = {
+      listDocuments: vi.fn(),
+      countDocuments: vi.fn(),
+      findById: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn()
+    };
+
+    const service = new DocumentsService(repository as any);
+    const tempFile = path.resolve(env.UPLOAD_DIR, 'tmp', `spoofed-${Date.now()}.pdf`);
+    await fs.mkdir(path.dirname(tempFile), { recursive: true });
+    await fs.writeFile(tempFile, 'not a pdf');
+
+    await expect(
+      service.upload(
+        {
+          userId: 'user-1',
+          role: 'HR',
+          employeeId: 'emp-1',
+          departmentId: 'dept-1'
+        },
+        {
+          originalname: 'spoofed.pdf',
+          mimetype: 'application/pdf',
+          path: tempFile,
+          size: 9
+        } as any,
+        {
+          employeeId: 'emp-1',
+          type: 'OTHER',
+          title: 'Spoofed file'
+        }
+      )
+    ).rejects.toThrow(/does not match/i);
+
+    expect(repository.create).not.toHaveBeenCalled();
+    await expect(fs.stat(tempFile)).rejects.toThrow();
+  });
 });
