@@ -59,8 +59,9 @@ services:
       retries: 3
       start_period: 30s
     volumes:
-      - ./uploads:/app/uploads
+      - uploads_data:/app/uploads
     command: sh -c "npm run prisma:migrate:deploy && npm run prisma:seed && node dist/src/server.js"
 
 volumes:
   postgres_data:
+  uploads_data:
