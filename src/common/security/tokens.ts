@@ -31,6 +31,15 @@ export function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
+export function getTokenExpiration(token: string): Date {
+  const payload = jwt.decode(token);
+  if (!payload || typeof payload !== 'object' || typeof payload.exp !== 'number') {
+    throw new Error('Signed token does not contain an expiration');
+  }
+
+  return new Date(payload.exp * 1000);
+}
+
 export function createAccessToken(payload: Omit<AccessTokenPayload, 'jti'> & Partial<Pick<AccessTokenPayload, 'jti'>>): string {
   return jwt.sign(
     {

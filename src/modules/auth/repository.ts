@@ -77,6 +77,18 @@ export class AuthRepository {
     });
   }
 
+  revokeRefreshTokensForFamily(familyId: string) {
+    return prisma.refreshToken.updateMany({
+      where: {
+        familyId,
+        revokedAt: null
+      },
+      data: {
+        revokedAt: new Date()
+      }
+    });
+  }
+
   createResetToken(data: Prisma.PasswordResetTokenCreateInput) {
     return prisma.passwordResetToken.create({ data });
   }

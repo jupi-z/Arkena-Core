@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { AuthService } from '../src/modules/auth/service.js';
-import { createRefreshToken, createResetToken, hashToken } from '../src/common/security/tokens.js';
+import { createRefreshToken, createResetToken, hashToken, verifyRefreshToken } from '../src/common/security/tokens.js';
 import { hashPassword } from '../src/common/security/password.js';
 
 function makeAuthRepo(overrides: Partial<Record<string, any>> = {}) {
@@ -15,6 +15,7 @@ function makeAuthRepo(overrides: Partial<Record<string, any>> = {}) {
     findRefreshTokenByHash: vi.fn(),
     revokeRefreshTokenByHash: vi.fn().mockResolvedValue({}),
     revokeRefreshTokensForUser: vi.fn().mockResolvedValue({ count: 1 }),
+    revokeRefreshTokensForFamily: vi.fn().mockResolvedValue({ count: 1 }),
     createResetToken: vi.fn().mockResolvedValue({}),
     findResetTokenByHash: vi.fn(),
     markResetTokenUsed: vi.fn().mockResolvedValue({}),
@@ -118,7 +119,33 @@ describe('AuthService', () => {
     const result = await service.refresh({ refreshToken });
 
     expect(repository.revokeRefreshTokenByHash).toHaveBeenCalledOnce();
+    const rotatedPayload = verifyRefreshToken(result.refreshToken);
+    expect(rotatedPayload.familyId).toBe('family-1');
+    expect(rotatedPayload.jti).not.toBe('old-jti');
+    expect(repository.revokeRefreshTokenByHash).toHaveBeenCalledWith(hashToken(refreshToken), rotatedPayload.jti);
     expect(result.refreshToken).toBeTypeOf('string');
+  });
+
+  it('revokes a refresh-token family when a rotated token is reused', async () => {
+    const repository = makeAuthRepo();
+    const refreshToken = createRefreshToken({
+      sub: 'user-1',
+      familyId: 'family-reused',
+      jti: 'old-jti'
+    });
+
+    repository.findRefreshTokenByHash.mockResolvedValue({
+      id: 'rt-1',
+      jti: 'old-jti',
+      familyId: 'family-reused',
+      revokedAt: new Date(),
+      expiresAt: new Date(Date.now() + 1000 * 60 * 60),
+      user: { id: 'user-1', status: 'ACTIVE' }
+    });
+
+    const service = new AuthService(repository as any);
+    await expect(service.refresh({ refreshToken })).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
+    expect(repository.revokeRefreshTokensForFamily).toHaveBeenCalledWith('family-reused');
   });
 
   it('changes password after verifying the current password', async () => {
