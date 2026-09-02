@@ -24,6 +24,8 @@ const envSchema = z.object({
   TRUST_PROXY: z.string().default('1'),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(300),
+  AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
+  AUTH_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(20),
   BODY_SIZE_LIMIT: z.string().default('2mb'),
   ENABLE_OPENAPI_DOCS: booleanString.default('true'),
   METRICS_ENABLED: booleanString.default('true'),

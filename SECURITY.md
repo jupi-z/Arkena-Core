@@ -4,7 +4,7 @@
 
 - Helmet
 - CORS allowlist
-- rate limiting
+- global and dedicated authentication rate limiting
 - Zod validation
 - bcrypt password hashing
 - JWT access tokens
@@ -13,6 +13,7 @@
 - logout and logout-all support
 - refresh-token session revocation after account suspension, non-active status changes and role changes
 - permission checks at route level
+- privileged user creation restricted to `SUPER_ADMIN`
 - resource-level authorization for employee, attendance, document, notification and scoped dashboard access
 - secure document download endpoints
 - file size limits
