@@ -1,5 +1,11 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.11/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true,
+    "defaultBranch": "develop"
+  },
   "files": {
     "includes": [
       "src/**/*.ts",
@@ -17,7 +23,7 @@
     "formatWithErrors": false,
     "indentStyle": "space",
     "indentWidth": 2,
-    "lineEnding": "auto",
+    "lineEnding": "lf",
     "lineWidth": 120,
     "attributePosition": "auto"
   },
