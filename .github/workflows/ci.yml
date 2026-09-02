@@ -54,7 +54,7 @@ jobs:
 
   docker-compose:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     needs: test
     env:
       COMPOSE_PROJECT_NAME: arkena_ci
@@ -72,7 +72,7 @@ jobs:
         run: cp .env.example .env
 
       - name: Build API image
-        run: timeout 10m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml build
+        run: timeout 20m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml build
 
       - name: Start database
         run: timeout 2m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml up -d db
