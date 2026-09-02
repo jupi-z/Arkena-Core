@@ -59,8 +59,8 @@ jobs:
     env:
       COMPOSE_PROJECT_NAME: arkena_ci
       API_PORT: 3100
-      API_BASE_URL: http://api:3000
-      E2E_BASE_URL: http://api:3000
+      API_BASE_URL: http://127.0.0.1:3000
+      E2E_BASE_URL: http://127.0.0.1:3000
       POSTGRES_CONTAINER_NAME: arkena_ci-db-1
       PROBE_IMAGE: curlimages/curl:8.11.1
       NODE_RUNNER_IMAGE: node:22-bookworm-slim
@@ -101,8 +101,14 @@ jobs:
 
       - name: Wait for API readiness
         run: |
+          api_container_id="$(docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml ps -q api)"
+          if [ -z "$api_container_id" ]; then
+            echo "API container was not created"
+            docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml ps
+            exit 1
+          fi
           for attempt in $(seq 1 90); do
-            if docker run --rm --network "${COMPOSE_PROJECT_NAME}_default" "$PROBE_IMAGE" -fsS "$API_BASE_URL/health/ready"; then
+            if docker run --rm --network "container:${api_container_id}" "$PROBE_IMAGE" -fsS "$API_BASE_URL/health/ready"; then
               exit 0
             fi
             echo "Waiting for API readiness ($attempt/90)"
@@ -114,10 +120,14 @@ jobs:
           exit 1
 
       - name: Verify docs
-        run: timeout 1m docker run --rm --network "${COMPOSE_PROJECT_NAME}_default" "$PROBE_IMAGE" -fsS "$API_BASE_URL/docs/" > /dev/null
+        run: |
+          api_container_id="$(docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml ps -q api)"
+          timeout 1m docker run --rm --network "container:${api_container_id}" "$PROBE_IMAGE" -fsS "$API_BASE_URL/docs/" > /dev/null
 
       - name: Verify metrics
-        run: timeout 1m docker run --rm --network "${COMPOSE_PROJECT_NAME}_default" "$PROBE_IMAGE" -fsS "$API_BASE_URL/metrics" | grep arkena_http_requests_total
+        run: |
+          api_container_id="$(docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml ps -q api)"
+          timeout 1m docker run --rm --network "container:${api_container_id}" "$PROBE_IMAGE" -fsS "$API_BASE_URL/metrics" | grep arkena_http_requests_total
 
       - name: Run backup and restore drill
         run: |
@@ -127,8 +137,9 @@ jobs:
           timeout 1m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml stop api
           ALLOW_RESTORE=true timeout 3m sh scripts/restore-postgres.sh "$latest_backup"
           timeout 2m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml up -d --no-deps api
+          api_container_id="$(docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml ps -q api)"
           for attempt in $(seq 1 30); do
-            if docker run --rm --network "${COMPOSE_PROJECT_NAME}_default" "$PROBE_IMAGE" -fsS "$API_BASE_URL/health/ready"; then
+            if docker run --rm --network "container:${api_container_id}" "$PROBE_IMAGE" -fsS "$API_BASE_URL/health/ready"; then
               exit 0
             fi
             echo "Waiting for API readiness after restore ($attempt/30)"
@@ -140,8 +151,9 @@ jobs:
 
       - name: Run lightweight load check
         run: |
-            timeout 3m docker run --rm \
-            --network "${COMPOSE_PROJECT_NAME}_default" \
+          api_container_id="$(docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml ps -q api)"
+          timeout 3m docker run --rm \
+            --network "container:${api_container_id}" \
             -v "$PWD:/workspace" \
             -w /workspace \
             -e LOAD_TEST_BASE_URL="$API_BASE_URL" \
@@ -155,8 +167,9 @@ jobs:
 
       - name: Run release E2E
         run: |
-            timeout 8m docker run --rm \
-            --network "${COMPOSE_PROJECT_NAME}_default" \
+          api_container_id="$(docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml ps -q api)"
+          timeout 8m docker run --rm \
+            --network "container:${api_container_id}" \
             -v "$PWD:/workspace" \
             -v arkena_ci_e2e_node_modules:/workspace/node_modules \
             -w /workspace \
