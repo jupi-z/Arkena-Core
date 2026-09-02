@@ -16,10 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -53,11 +53,13 @@ jobs:
     env:
       COMPOSE_PROJECT_NAME: arkena_ci
       API_PORT: 3100
-      API_BASE_URL: http://127.0.0.1:3000
+      API_BASE_URL: http://api:3000
       E2E_BASE_URL: http://api:3000
+      PROBE_IMAGE: curlimages/curl:8.11.1
+      NODE_RUNNER_IMAGE: node:22-bookworm-slim
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Prepare local env
         run: cp .env.example .env
@@ -68,7 +70,7 @@ jobs:
       - name: Wait for API readiness
         run: |
           for attempt in $(seq 1 90); do
-            if docker compose exec -T api wget -qO- "$API_BASE_URL/health/ready"; then
+            if docker run --rm --network "${COMPOSE_PROJECT_NAME}_default" "$PROBE_IMAGE" -fsS "$API_BASE_URL/health/ready"; then
               exit 0
             fi
             echo "Waiting for API readiness ($attempt/90)"
@@ -80,10 +82,10 @@ jobs:
           exit 1
 
       - name: Verify docs
-        run: docker compose exec -T api wget -qO- "$API_BASE_URL/docs/" > /dev/null
+        run: docker run --rm --network "${COMPOSE_PROJECT_NAME}_default" "$PROBE_IMAGE" -fsS "$API_BASE_URL/docs/" > /dev/null
 
       - name: Verify metrics
-        run: docker compose exec -T api wget -qO- "$API_BASE_URL/metrics" | grep arkena_http_requests_total
+        run: docker run --rm --network "${COMPOSE_PROJECT_NAME}_default" "$PROBE_IMAGE" -fsS "$API_BASE_URL/metrics" | grep arkena_http_requests_total
 
       - name: Run backup and restore drill
         run: |
@@ -94,7 +96,7 @@ jobs:
           ALLOW_RESTORE=true sh scripts/restore-postgres.sh "$latest_backup"
           docker compose up -d api
           for attempt in $(seq 1 30); do
-            if docker compose exec -T api wget -qO- "$API_BASE_URL/health/ready"; then
+            if docker run --rm --network "${COMPOSE_PROJECT_NAME}_default" "$PROBE_IMAGE" -fsS "$API_BASE_URL/health/ready"; then
               exit 0
             fi
             echo "Waiting for API readiness after restore ($attempt/30)"
@@ -106,14 +108,18 @@ jobs:
 
       - name: Run lightweight load check
         run: |
-          docker compose exec -T \
+          docker run --rm \
+            --network "${COMPOSE_PROJECT_NAME}_default" \
+            -v "$PWD:/workspace" \
+            -w /workspace \
             -e LOAD_TEST_BASE_URL="$API_BASE_URL" \
             -e LOAD_TEST_PATH=/health/ready \
             -e LOAD_TEST_DURATION_SECONDS=5 \
             -e LOAD_TEST_CONCURRENCY=4 \
             -e LOAD_TEST_MAX_P95_MS=1000 \
             -e LOAD_TEST_MAX_ERROR_RATE=0 \
-            api node scripts/load-test.mjs
+            "$NODE_RUNNER_IMAGE" \
+            node scripts/load-test.mjs
 
       - name: Run release E2E
         run: |
@@ -124,7 +130,7 @@ jobs:
             -w /workspace \
             -e RUN_RELEASE_E2E=true \
             -e E2E_BASE_URL="$E2E_BASE_URL" \
-            node:22-bookworm-slim \
+            "$NODE_RUNNER_IMAGE" \
             sh -c "npm ci && npm run test:e2e"
 
       - name: Shutdown stack
