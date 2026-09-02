@@ -85,13 +85,7 @@ const rolePermissions: Record<RoleName, readonly string[]> = {
     'notification:read',
     'dashboard:read'
   ],
-  EMPLOYEE: [
-    'employee:read',
-    'attendance:read',
-    'document:read',
-    'document:download',
-    'notification:read'
-  ]
+  EMPLOYEE: ['employee:read', 'attendance:read', 'document:read', 'document:download', 'notification:read']
 };
 
 async function main() {
@@ -298,9 +292,9 @@ async function main() {
 
   await prisma.attendanceRecord.upsert({
     where: {
-      employeeId_attendanceDate: {
+      employeeId_attendanceDay: {
         employeeId: employees[3].id,
-        attendanceDate: new Date('2026-08-24T00:00:00.000Z')
+        attendanceDay: new Date('2026-08-24T00:00:00.000Z')
       }
     },
     update: {
@@ -309,7 +303,7 @@ async function main() {
     create: {
       employeeId: employees[3].id,
       departmentId: departments[2].id,
-      attendanceDate: new Date('2026-08-24T00:00:00.000Z'),
+      attendanceDay: new Date('2026-08-24T00:00:00.000Z'),
       status: 'PRESENT',
       checkInAt: new Date('2026-08-24T08:58:00.000Z'),
       checkOutAt: new Date('2026-08-24T17:31:00.000Z'),

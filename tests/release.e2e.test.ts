@@ -386,43 +386,30 @@ e2eDescribe('Release e2e', () => {
     expect(linkedEmployee.user).not.toHaveProperty('passwordHash');
     expect(linkedEmployee.user).not.toHaveProperty('refreshTokens');
 
-    const attendancePayloads = [
-      {
-        attendanceDate: `${currentDay}T08:00:00.000Z`,
+    const attendanceResponse = await request(baseUrl)
+      .post('/attendance')
+      .set('Authorization', `Bearer ${state.adminSession?.accessToken}`)
+      .send({
+        employeeId: state.employeeId,
+        departmentId: state.departmentId,
+        attendanceDay: currentDay,
         status: 'PRESENT',
         checkInAt: `${currentDay}T08:03:00.000Z`,
-        checkOutAt: `${currentDay}T17:05:00.000Z`
-      },
-      {
-        attendanceDate: `${currentDay}T09:00:00.000Z`,
-        status: 'LATE',
-        checkInAt: `${currentDay}T09:14:00.000Z`
-      }
-    ] as const;
+        checkOutAt: `${currentDay}T17:05:00.000Z`,
+        comment: 'Release e2e attendance',
+        source: 'release-e2e'
+      });
 
-    for (const payload of attendancePayloads) {
-      const attendanceResponse = await request(baseUrl)
-        .post('/attendance')
-        .set('Authorization', `Bearer ${state.adminSession?.accessToken}`)
-        .send({
-          employeeId: state.employeeId,
-          departmentId: state.departmentId,
-          comment: 'Release e2e attendance',
-          source: 'release-e2e',
-          ...payload
-        });
-
-      expect(attendanceResponse.status).toBe(201);
-      state.created.attendanceIds.push(attendanceResponse.body.data.id as string);
-    }
+    expect(attendanceResponse.status).toBe(201);
+    state.created.attendanceIds.push(attendanceResponse.body.data.id as string);
 
     const summaryResponse = await request(baseUrl)
       .get('/attendance/summary')
       .set('Authorization', `Bearer ${state.adminSession?.accessToken}`)
       .query({
         departmentId: state.departmentId,
-        from: `${currentDay}T00:00:00.000Z`,
-        to: `${currentDay}T23:59:59.999Z`
+        from: currentDay,
+        to: currentDay
       });
 
     expect(summaryResponse.status).toBe(200);
@@ -431,15 +418,15 @@ e2eDescribe('Release e2e', () => {
       data: {
         present: 1,
         absent: 0,
-        late: 1,
-        total: 2,
-        presenceRate: 50,
+        late: 0,
+        total: 1,
+        presenceRate: 100,
         byDepartment: {
           [state.departmentId]: {
             present: 1,
             absent: 0,
-            late: 1,
-            total: 2
+            late: 0,
+            total: 1
           }
         }
       }
@@ -511,8 +498,8 @@ e2eDescribe('Release e2e', () => {
             employeeCount: 1
           })
         ]),
-        todayAttendance: state.baselineOverview!.todayAttendance + 2,
-        todayLate: state.baselineOverview!.todayLate + 1,
+        todayAttendance: state.baselineOverview!.todayAttendance + 1,
+        todayLate: state.baselineOverview!.todayLate,
         recentDocuments: expect.arrayContaining([
           expect.objectContaining({
             id: state.documentId,

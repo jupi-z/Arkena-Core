@@ -3,7 +3,12 @@ import { prisma } from '../../database/prisma.js';
 import { publicUserSelect } from '../../common/security/public-user-select.js';
 
 export class AttendanceRepository {
-  listAttendance(where: Prisma.AttendanceRecordWhereInput, skip: number, take: number, orderBy: Prisma.AttendanceRecordOrderByWithRelationInput) {
+  listAttendance(
+    where: Prisma.AttendanceRecordWhereInput,
+    skip: number,
+    take: number,
+    orderBy: Prisma.AttendanceRecordOrderByWithRelationInput
+  ) {
     return prisma.attendanceRecord.findMany({
       where,
       skip,
@@ -44,13 +49,12 @@ export class AttendanceRepository {
     });
   }
 
-  findByUnique(employeeId: string, attendanceDate: Date) {
-    return prisma.attendanceRecord.findUnique({
+  findByUnique(employeeId: string, attendanceDay: Date, excludeId?: string) {
+    return prisma.attendanceRecord.findFirst({
       where: {
-        employeeId_attendanceDate: {
-          employeeId,
-          attendanceDate
-        }
+        employeeId,
+        attendanceDay,
+        ...(excludeId ? { id: { not: excludeId } } : {})
       }
     });
   }

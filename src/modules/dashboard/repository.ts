@@ -3,13 +3,16 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../database/prisma.js';
 
 export class DashboardRepository {
-  overview(filters: {
-    employeeWhere?: Prisma.EmployeeWhereInput;
-    attendanceWhere?: Prisma.AttendanceRecordWhereInput;
-    documentWhere?: Prisma.DocumentWhereInput;
-    departmentWhere?: Prisma.DepartmentWhereInput;
-  } = {}) {
-    const startOfToday = dayjs().startOf('day').toDate();
+  overview(
+    filters: {
+      employeeWhere?: Prisma.EmployeeWhereInput;
+      attendanceWhere?: Prisma.AttendanceRecordWhereInput;
+      documentWhere?: Prisma.DocumentWhereInput;
+      departmentWhere?: Prisma.DepartmentWhereInput;
+    } = {}
+  ) {
+    const now = dayjs();
+    const startOfToday = new Date(Date.UTC(now.year(), now.month(), now.date()));
     const employeeWhere = filters.employeeWhere ?? {};
     const attendanceWhere = filters.attendanceWhere ?? {};
     const documentWhere = filters.documentWhere ?? {};
@@ -18,7 +21,9 @@ export class DashboardRepository {
     return Promise.all([
       prisma.employee.count({ where: employeeWhere }),
       prisma.employee.count({ where: { AND: [employeeWhere, { status: 'ACTIVE' }] } }),
-      prisma.employee.count({ where: { AND: [employeeWhere, { status: { in: ['INACTIVE', 'TERMINATED', 'ARCHIVED'] } }] } }),
+      prisma.employee.count({
+        where: { AND: [employeeWhere, { status: { in: ['INACTIVE', 'TERMINATED', 'ARCHIVED'] } }] }
+      }),
       prisma.department.findMany({
         where: departmentWhere,
         select: {
@@ -31,8 +36,10 @@ export class DashboardRepository {
           }
         }
       }),
-      prisma.attendanceRecord.count({ where: { AND: [attendanceWhere, { attendanceDate: { gte: startOfToday } }] } }),
-      prisma.attendanceRecord.count({ where: { AND: [attendanceWhere, { attendanceDate: { gte: startOfToday }, status: 'LATE' }] } }),
+      prisma.attendanceRecord.count({ where: { AND: [attendanceWhere, { attendanceDay: { gte: startOfToday } }] } }),
+      prisma.attendanceRecord.count({
+        where: { AND: [attendanceWhere, { attendanceDay: { gte: startOfToday }, status: 'LATE' }] }
+      }),
       prisma.document.findMany({
         take: 5,
         orderBy: { createdAt: 'desc' },
@@ -44,10 +51,9 @@ export class DashboardRepository {
     ]);
   }
 
-  employeeStats(filters: {
-    employeeWhere?: Prisma.EmployeeWhereInput;
-    departmentWhere?: Prisma.DepartmentWhereInput;
-  } = {}) {
+  employeeStats(
+    filters: { employeeWhere?: Prisma.EmployeeWhereInput; departmentWhere?: Prisma.DepartmentWhereInput } = {}
+  ) {
     const employeeWhere = filters.employeeWhere ?? {};
     const departmentWhere = filters.departmentWhere ?? {};
 

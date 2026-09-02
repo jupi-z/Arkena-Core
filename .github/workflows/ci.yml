@@ -22,6 +22,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -35,11 +37,17 @@ jobs:
       - name: Generate Prisma Client
         run: npx prisma generate
 
+      - name: Lint
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
       - name: TypeScript build
         run: npm run build
 
-      - name: Run tests
-        run: npm test
+      - name: Run tests with coverage thresholds
+        run: npm run test:coverage
 
       - name: Validate production environment contract
         run: npm run ops:validate-env
@@ -67,6 +75,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
 
       - name: Prepare local env
         run: cp .env.example .env

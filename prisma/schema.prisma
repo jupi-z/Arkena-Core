@@ -170,7 +170,7 @@ model AttendanceRecord {
   employee        Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   departmentId    String?
   department      Department?      @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  attendanceDate  DateTime
+  attendanceDay   DateTime         @db.Date
   status          AttendanceStatus
   checkInAt       DateTime?
   checkOutAt      DateTime?
@@ -181,8 +181,8 @@ model AttendanceRecord {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
-  @@unique([employeeId, attendanceDate])
-  @@index([attendanceDate])
+  @@unique([employeeId, attendanceDay])
+  @@index([attendanceDay])
   @@index([departmentId])
   @@index([status])
 }
@@ -284,4 +284,3 @@ model PasswordResetToken {
   @@index([userId, purpose])
   @@index([expiresAt])
 }
-

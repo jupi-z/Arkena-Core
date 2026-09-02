@@ -1,18 +1,21 @@
 import type { Request, Response } from 'express';
 import { ok } from '../../common/http/response.js';
 import { AttendanceService } from './service.js';
+import { AttendanceInput, AttendanceListQuery, AttendanceUpdateInput } from './types.js';
 
 export class AttendanceController {
   constructor(private readonly service = new AttendanceService()) {}
 
   list = async (req: Request, res: Response) => {
-    const result = await this.service.list(req.auth!, req.query as unknown as any);
-    res.json(ok(result.items, {
-      page: Number(req.query.page ?? 1),
-      limit: Number(req.query.limit ?? 20),
-      total: result.total,
-      pages: Math.max(1, Math.ceil(result.total / Number(req.query.limit ?? 20)))
-    }));
+    const result = await this.service.list(req.auth!, req.query as unknown as AttendanceListQuery);
+    res.json(
+      ok(result.items, {
+        page: Number(req.query.page ?? 1),
+        limit: Number(req.query.limit ?? 20),
+        total: result.total,
+        pages: Math.max(1, Math.ceil(result.total / Number(req.query.limit ?? 20)))
+      })
+    );
   };
 
   getById = async (req: Request, res: Response) => {
@@ -21,12 +24,12 @@ export class AttendanceController {
   };
 
   create = async (req: Request, res: Response) => {
-    const result = await this.service.create(req.auth!, req.body);
+    const result = await this.service.create(req.auth!, req.body as AttendanceInput);
     res.status(201).json(ok(result));
   };
 
   update = async (req: Request, res: Response) => {
-    const result = await this.service.update(req.auth!, String(req.params.id), req.body);
+    const result = await this.service.update(req.auth!, String(req.params.id), req.body as AttendanceUpdateInput);
     res.json(ok(result));
   };
 
@@ -36,7 +39,7 @@ export class AttendanceController {
   };
 
   summary = async (req: Request, res: Response) => {
-    const result = await this.service.summary(req.auth!, req.query as any);
+    const result = await this.service.summary(req.auth!, req.query as unknown as AttendanceListQuery);
     res.json(ok(result));
   };
 }

@@ -6,8 +6,8 @@ Last updated: 2026-09-02
 
 - Scope completion: **100%**
 - Production readiness: **99%**
-- Current active workstream: **Release validation completed; organization infrastructure remains external**
-- Current task progress: **100%**
+- Current active workstream: **Local release validation green; GitHub Actions promotion pending**
+- Current task progress: **96%**
 
 ## What Is Done
 
@@ -33,7 +33,7 @@ Last updated: 2026-09-02
 - Core modules created: users, employees, departments, attendance, documents, notifications, audit, dashboard
 - OpenAPI docs published at `/docs`
 - OpenAPI spec expanded with reusable schemas and endpoint coverage for the core API
-- Unit tests passing: **55 passed, 5 skipped by explicit release-E2E opt-in**
+- Unit tests passing: **60 passed, 5 skipped by explicit release-E2E opt-in**
 - Auth and core service coverage expanded for logout, logout-all, reset flow, forgot-password, profile retrieval, attendance summary, and secure document upload
 - User service responses are sanitized to prevent password hash and refresh token exposure
 - User lifecycle tests cover secure creation, response sanitization and session revocation on suspension
@@ -57,9 +57,12 @@ Last updated: 2026-09-02
 - Backup and restore scripts added
 - Backup/restore drill added to Docker CI
 - Lightweight load test script added with measurable latency and error-rate thresholds
+- Biome lint and deterministic changed-file format gates added
+- Vitest coverage gate added with thresholds locked to the current useful baseline
+- Sensitive-field regression tests scan OpenAPI and safe user projections for security internals
 - Virgin PostgreSQL migration and seed proof completed: 1 migration, 28 permissions, 3 departments, 4 employees
 - Containerized release E2E proof completed after the latest image rebuild: 5 scenarios passed
-- Isolated load proof completed: 3,364 requests, 0 errors, p95 102 ms
+- Isolated load proof completed: 3,995 requests, 0 errors, p95 8.69 ms
 - Prisma dependency pinned to an audit-clean version
 
 ## What Remains
@@ -73,6 +76,9 @@ Last updated: 2026-09-02
 ## Validation
 
 - TypeScript: pass
+- Lint: pass
+- Format check: pass
+- Coverage: pass (lines 63.75%, statements 63.75%, functions 51.21%, branches 63.2%)
 - Vitest: pass
 - Prisma schema validation: pass
 - Local boot: pass
@@ -100,7 +106,7 @@ Last updated: 2026-09-02
 - List filter schema and service tests: pass
 - Dashboard module type boundary: pass
 - Production environment validator: pass
-- Lightweight load check: pass (3,364 requests, 0 errors, p95 102 ms in an isolated disposable container)
+- Lightweight load check: pass (3,995 requests, 0 errors, p95 8.69 ms in an isolated disposable container)
 - Virgin database migration and seed: pass
 - Rebuilt container release E2E: pass (5 scenarios)
 - Compose staging config: pass

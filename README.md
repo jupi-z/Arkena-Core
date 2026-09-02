@@ -2,6 +2,8 @@
 
 Production-oriented REST API for enterprise workforce management, built with Node.js, TypeScript, Express, PostgreSQL and Prisma.
 
+[![CI](https://github.com/jupi-z/Arkena-Core/actions/workflows/ci.yml/badge.svg)](https://github.com/jupi-z/Arkena-Core/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![Node.js](https://img.shields.io/badge/node-%3E%3D22-blue.svg)](https://nodejs.org/)
+
 ## What It Does
 
 Arkena Core is a reusable enterprise backend reference that covers:
@@ -182,7 +184,18 @@ Run the test suite with:
 npm test
 ```
 
-The project is set up for unit and integration tests using Vitest and Supertest.
+The project is set up for unit and integration tests using Vitest and Supertest. The CI quality gate also runs:
+
+```bash
+npm run lint
+npm run format:check
+npm run build
+npm run test:coverage
+```
+
+Coverage thresholds are intentionally explicit in `vitest.config.ts`: 60% lines/statements, 50% functions and 60% branches. They are a regression floor for the current backend scope, not a claim of complete production verification.
+
+Attendance uses one canonical UTC calendar day per employee. Send `attendanceDay` as `YYYY-MM-DD`; `checkInAt` and `checkOutAt` remain UTC timestamps and checkout cannot precede check-in. The database constraint `employeeId + attendanceDay` rejects duplicate daily records, including concurrent writes.
 
 For the release smoke flow against a live API, run:
 
