@@ -108,7 +108,7 @@ jobs:
             exit 1
           fi
           for attempt in $(seq 1 90); do
-            if docker run --rm --network "container:${api_container_id}" "$PROBE_IMAGE" -fsS "$API_BASE_URL/health/ready"; then
+            if timeout 15s docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml exec -T api wget -qO- http://127.0.0.1:3000/health/ready > /dev/null; then
               exit 0
             fi
             echo "Waiting for API readiness ($attempt/90)"
@@ -121,13 +121,11 @@ jobs:
 
       - name: Verify docs
         run: |
-          api_container_id="$(docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml ps -q api)"
-          timeout 1m docker run --rm --network "container:${api_container_id}" "$PROBE_IMAGE" -fsS "$API_BASE_URL/docs/" > /dev/null
+          timeout 1m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml exec -T api wget -qO- http://127.0.0.1:3000/docs/ > /dev/null
 
       - name: Verify metrics
         run: |
-          api_container_id="$(docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml ps -q api)"
-          timeout 1m docker run --rm --network "container:${api_container_id}" "$PROBE_IMAGE" -fsS "$API_BASE_URL/metrics" | grep arkena_http_requests_total
+          timeout 1m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml exec -T api wget -qO- http://127.0.0.1:3000/metrics | grep arkena_http_requests_total
 
       - name: Run backup and restore drill
         run: |
@@ -137,9 +135,8 @@ jobs:
           timeout 1m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml stop api
           ALLOW_RESTORE=true timeout 3m sh scripts/restore-postgres.sh "$latest_backup"
           timeout 2m docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml up -d --no-deps api
-          api_container_id="$(docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml ps -q api)"
           for attempt in $(seq 1 30); do
-            if docker run --rm --network "container:${api_container_id}" "$PROBE_IMAGE" -fsS "$API_BASE_URL/health/ready"; then
+            if timeout 15s docker compose -f docker-compose.yml -f deploy/docker-compose.ci.yml exec -T api wget -qO- http://127.0.0.1:3000/health/ready > /dev/null; then
               exit 0
             fi
             echo "Waiting for API readiness after restore ($attempt/30)"
