@@ -6,7 +6,7 @@ Last updated: 2026-09-02
 
 - Scope completion: **100%**
 - Production readiness: **99%**
-- Current active workstream: **Standardized upload error handling completed**
+- Current active workstream: **Authentication throttling and privileged user creation hardening completed**
 - Current task progress: **100%**
 
 ## What Is Done
@@ -18,6 +18,8 @@ Last updated: 2026-09-02
 - RBAC permissions model implemented
 - User account creation and secure soft-deactivation implemented
 - Sensitive user status and role changes revoke active refresh-token sessions
+- Dedicated authentication rate limiting is configurable and returns standardized `429` errors
+- Privileged account creation is restricted to `SUPER_ADMIN` at the service layer
 - Multer upload failures return standardized API errors, including `413 FILE_TOO_LARGE`
 - Audit records automatically inherit request IP and user-agent metadata when available
 - Audit and notification responses use safe related-user projections without password hashes
@@ -28,7 +30,7 @@ Last updated: 2026-09-02
 - Core modules created: users, employees, departments, attendance, documents, notifications, audit, dashboard
 - OpenAPI docs published at `/docs`
 - OpenAPI spec expanded with reusable schemas and endpoint coverage for the core API
-- Unit tests passing
+- Unit tests passing: **49 passed, 5 skipped by explicit release-E2E opt-in**
 - Auth and core service coverage expanded for logout, logout-all, reset flow, forgot-password, profile retrieval, attendance summary, and secure document upload
 - User service responses are sanitized to prevent password hash and refresh token exposure
 - User lifecycle tests cover secure creation, response sanitization and session revocation on suspension
@@ -84,6 +86,8 @@ Last updated: 2026-09-02
 - Department service tests: pass
 - Sensitive user session revocation tests: pass
 - Standardized upload error tests: pass
+- Authentication rate-limit response test: pass
+- Privileged user creation authorization test: pass
 - Production environment validator: pass
 - Lightweight load check: pass
 - Compose staging config: pass
