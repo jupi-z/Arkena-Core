@@ -27,7 +27,11 @@ export class UsersController {
   };
 
   create = async (req: Request, res: Response) => {
-    const result = await this.service.create({ ...req.body, actorUserId: req.auth?.userId });
+    const result = await this.service.create({
+      ...req.body,
+      actorUserId: req.auth?.userId,
+      actorRole: req.auth?.role
+    });
     res.status(201).json(ok(result));
   };
 

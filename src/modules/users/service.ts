@@ -1,5 +1,5 @@
 import { Prisma, RoleName, UserStatus } from '@prisma/client';
-import { badRequest, conflict, notFound } from '../../common/errors/http-error.js';
+import { badRequest, conflict, forbidden, notFound } from '../../common/errors/http-error.js';
 import { recordAudit } from '../../common/audit/record-audit.js';
 import { offsetFromPage } from '../../common/http/query.js';
 import { hashPassword } from '../../common/security/password.js';
@@ -82,7 +82,13 @@ export class UsersService {
     role?: RoleName;
     status?: UserStatus;
     actorUserId?: string;
+    actorRole?: RoleName;
   }) {
+    const role = input.role ?? 'EMPLOYEE';
+    if (['SUPER_ADMIN', 'ADMIN'].includes(role) && input.actorRole !== 'SUPER_ADMIN') {
+      throw forbidden('Only a super admin can create privileged users');
+    }
+
     try {
       const created = await this.repository.createUser({
         email: input.email.toLowerCase(),
@@ -91,7 +97,7 @@ export class UsersService {
         lastName: input.lastName,
         phone: input.phone,
         jobTitle: input.jobTitle,
-        role: input.role ?? 'EMPLOYEE',
+        role,
         status: input.status ?? 'ACTIVE'
       });
 

@@ -48,6 +48,8 @@ const errorResponse = (description: string) => ({
   })
 });
 
+const authRateLimitResponse = errorResponse('Authentication rate limit exceeded');
+
 const binaryResponse = (description: string) => ({
   description,
   content: {
@@ -631,6 +633,7 @@ export const openApiSpec = {
         responses: {
           201: successResponse({ $ref: '#/components/schemas/AuthSession' }, 'Admin account created'),
           400: errorResponse('Validation error'),
+          429: authRateLimitResponse,
           409: errorResponse('Admin already exists')
         }
       }
@@ -645,6 +648,7 @@ export const openApiSpec = {
         },
         responses: {
           200: successResponse({ $ref: '#/components/schemas/AuthSession' }),
+          429: authRateLimitResponse,
           ...authErrorResponses
         }
       }
@@ -659,6 +663,7 @@ export const openApiSpec = {
         },
         responses: {
           200: successResponse({ $ref: '#/components/schemas/AuthSession' }),
+          429: authRateLimitResponse,
           ...authErrorResponses
         }
       }
@@ -697,6 +702,7 @@ export const openApiSpec = {
         },
         responses: {
           202: messageResponse('Reset instructions sent'),
+          429: authRateLimitResponse,
           ...authErrorResponses
         }
       }
@@ -711,6 +717,7 @@ export const openApiSpec = {
         },
         responses: {
           200: messageResponse('Password reset'),
+          429: authRateLimitResponse,
           ...authErrorResponses
         }
       }

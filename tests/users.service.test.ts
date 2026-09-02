@@ -63,7 +63,8 @@ describe('UsersService', () => {
       firstName: 'New',
       lastName: 'User',
       role: 'HR',
-      actorUserId: 'admin-1'
+      actorUserId: 'admin-1',
+      actorRole: 'ADMIN'
     });
 
     expect(repository.createUser).toHaveBeenCalledWith(
@@ -75,6 +76,34 @@ describe('UsersService', () => {
       })
     );
     expect(result).not.toHaveProperty('passwordHash');
+  });
+
+  it('rejects privileged user creation unless the actor is a super admin', async () => {
+    const repository = {
+      listUsers: vi.fn(),
+      countUsers: vi.fn(),
+      findUserById: vi.fn(),
+      createUser: vi.fn(),
+      updateUser: vi.fn(),
+      revokeRefreshTokensForUser: vi.fn()
+    };
+
+    const service = new UsersService(repository as any);
+
+    await expect(service.create({
+      email: 'new.admin@arkena.local',
+      password: 'StrongPassword123!',
+      firstName: 'New',
+      lastName: 'Admin',
+      role: 'ADMIN',
+      actorUserId: 'admin-1',
+      actorRole: 'ADMIN'
+    })).rejects.toMatchObject({
+      statusCode: 403,
+      code: 'FORBIDDEN'
+    });
+
+    expect(repository.createUser).not.toHaveBeenCalled();
   });
 
   it('suspends a user and revokes active sessions', async () => {
