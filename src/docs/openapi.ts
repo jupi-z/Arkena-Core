@@ -30,16 +30,17 @@ const paginatedResponse = (itemSchema: Record<string, unknown>, description = 'S
   })
 });
 
-const messageResponse = (message: string, description = 'Successful response') => successResponse(
-  {
-    type: 'object',
-    properties: {
-      message: { type: 'string', example: message }
+const messageResponse = (message: string, description = 'Successful response') =>
+  successResponse(
+    {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: message }
+      },
+      required: ['message']
     },
-    required: ['message']
-  },
-  description
-);
+    description
+  );
 
 const errorResponse = (description: string) => ({
   description,
@@ -75,8 +76,8 @@ const paginationParameters = [
 ];
 
 const dateRangeParameters = [
-  { name: 'from', in: 'query', schema: { type: 'string', format: 'date-time' } },
-  { name: 'to', in: 'query', schema: { type: 'string', format: 'date-time' } }
+  { name: 'from', in: 'query', schema: { type: 'string', format: 'date' } },
+  { name: 'to', in: 'query', schema: { type: 'string', format: 'date' } }
 ];
 
 const filterParameters = {
@@ -357,22 +358,34 @@ export const openApiSpec = {
           id: { type: 'string' },
           employeeId: { type: 'string' },
           departmentId: { type: 'string', nullable: true },
-          attendanceDate: { type: 'string', format: 'date-time' },
+          attendanceDay: { type: 'string', format: 'date', example: '2026-08-24' },
           status: { type: 'string', example: 'PRESENT' },
           checkInAt: { type: 'string', format: 'date-time', nullable: true },
           checkOutAt: { type: 'string', format: 'date-time', nullable: true },
           comment: { type: 'string', nullable: true },
           source: { type: 'string', nullable: true }
         },
-        required: ['id', 'employeeId', 'attendanceDate', 'status']
+        required: ['id', 'employeeId', 'attendanceDay', 'status']
       },
       AttendanceRequest: {
         type: 'object',
-        required: ['employeeId', 'attendanceDate', 'status'],
+        required: ['employeeId', 'attendanceDay', 'status'],
         properties: {
           employeeId: { type: 'string' },
           departmentId: { type: 'string', nullable: true },
-          attendanceDate: { type: 'string', format: 'date-time' },
+          attendanceDay: { type: 'string', format: 'date', example: '2026-08-24' },
+          status: { type: 'string', enum: ['PRESENT', 'ABSENT', 'LATE', 'LEAVE'] },
+          checkInAt: { type: 'string', format: 'date-time', nullable: true },
+          checkOutAt: { type: 'string', format: 'date-time', nullable: true },
+          comment: { type: 'string', nullable: true },
+          source: { type: 'string', nullable: true }
+        }
+      },
+      AttendanceUpdateRequest: {
+        type: 'object',
+        properties: {
+          departmentId: { type: 'string', nullable: true },
+          attendanceDay: { type: 'string', format: 'date', example: '2026-08-24' },
           status: { type: 'string', enum: ['PRESENT', 'ABSENT', 'LATE', 'LEAVE'] },
           checkInAt: { type: 'string', format: 'date-time', nullable: true },
           checkOutAt: { type: 'string', format: 'date-time', nullable: true },
@@ -612,7 +625,8 @@ export const openApiSpec = {
               'text/plain': {
                 schema: {
                   type: 'string',
-                  example: '# HELP arkena_http_requests_total Total HTTP requests by method, route and status code.\narkena_http_requests_total{method="GET",route="/health/live",status_code="200"} 1\n'
+                  example:
+                    '# HELP arkena_http_requests_total Total HTTP requests by method, route and status code.\narkena_http_requests_total{method="GET",route="/health/live",status_code="200"} 1\n'
                 }
               }
             }
@@ -968,7 +982,8 @@ export const openApiSpec = {
         },
         responses: {
           201: successResponse({ $ref: '#/components/schemas/AttendanceRecord' }),
-          ...listErrorResponses
+          ...listErrorResponses,
+          409: errorResponse('Attendance record already exists for this employee and day')
         }
       }
     },
@@ -976,11 +991,7 @@ export const openApiSpec = {
       get: {
         tags: ['Attendance'],
         summary: 'Attendance summary',
-        parameters: [
-          filterParameters.departmentId,
-          filterParameters.employeeId,
-          ...dateRangeParameters
-        ],
+        parameters: [filterParameters.departmentId, filterParameters.employeeId, ...dateRangeParameters],
         responses: {
           200: successResponse({ $ref: '#/components/schemas/AttendanceSummary' }),
           ...listErrorResponses
@@ -1003,11 +1014,12 @@ export const openApiSpec = {
         parameters: [idParam],
         requestBody: {
           required: true,
-          content: jsonContent({ $ref: '#/components/schemas/AttendanceRequest' })
+          content: jsonContent({ $ref: '#/components/schemas/AttendanceUpdateRequest' })
         },
         responses: {
           200: successResponse({ $ref: '#/components/schemas/AttendanceRecord' }),
-          ...listErrorResponses
+          ...listErrorResponses,
+          409: errorResponse('Attendance record already exists for this employee and day')
         }
       },
       delete: {
@@ -1024,11 +1036,7 @@ export const openApiSpec = {
       get: {
         tags: ['Documents'],
         summary: 'List documents',
-        parameters: [
-          ...paginationParameters,
-          filterParameters.employeeId,
-          filterParameters.type
-        ],
+        parameters: [...paginationParameters, filterParameters.employeeId, filterParameters.type],
         responses: {
           200: listResponse({ $ref: '#/components/schemas/Document' }),
           ...listErrorResponses
@@ -1132,11 +1140,7 @@ export const openApiSpec = {
       get: {
         tags: ['Audit'],
         summary: 'List audit logs',
-        parameters: [
-          ...paginationParameters,
-          filterParameters.resource,
-          filterParameters.action
-        ],
+        parameters: [...paginationParameters, filterParameters.resource, filterParameters.action],
         responses: {
           200: listResponse({ $ref: '#/components/schemas/AuditLog' }),
           ...listErrorResponses

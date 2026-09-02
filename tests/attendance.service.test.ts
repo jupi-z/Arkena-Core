@@ -26,7 +26,7 @@ describe('AttendanceService', () => {
         },
         {
           employeeId: 'emp-1',
-          attendanceDate: '2026-08-25T00:00:00.000Z',
+          attendanceDay: '2026-08-25',
           status: 'PRESENT'
         }
       )
@@ -55,7 +55,7 @@ describe('AttendanceService', () => {
       },
       {
         employeeId: 'emp-1',
-        attendanceDate: '2026-08-25T00:00:00.000Z',
+        attendanceDay: '2026-08-25',
         status: 'PRESENT',
         comment: 'On time'
       }
@@ -94,8 +94,8 @@ describe('AttendanceService', () => {
       {
         departmentId: 'dept-1',
         employeeId: 'emp-1',
-        from: '2026-08-01T00:00:00.000Z',
-        to: '2026-08-31T23:59:59.999Z'
+        from: '2026-08-01',
+        to: '2026-08-31'
       }
     );
 
@@ -103,7 +103,7 @@ describe('AttendanceService', () => {
       expect.objectContaining({
         departmentId: 'dept-1',
         employeeId: 'emp-1',
-        attendanceDate: expect.objectContaining({
+        attendanceDay: expect.objectContaining({
           gte: expect.any(Date),
           lte: expect.any(Date)
         })
@@ -203,10 +203,96 @@ describe('AttendanceService', () => {
         {
           employeeId: 'emp-2',
           departmentId: 'dept-2',
-          attendanceDate: '2026-08-25T00:00:00.000Z',
+          attendanceDay: '2026-08-25',
           status: 'PRESENT'
         }
       )
     ).rejects.toThrow(/forbidden/i);
+  });
+  it('rejects check-out before check-in', async () => {
+    const repository = {
+      findByUnique: vi.fn().mockResolvedValue(null),
+      create: vi.fn(),
+      listAttendance: vi.fn(),
+      countAttendance: vi.fn(),
+      findById: vi.fn(),
+      update: vi.fn(),
+      remove: vi.fn(),
+      summary: vi.fn()
+    };
+
+    const service = new AttendanceService(repository as any);
+
+    await expect(
+      service.create(
+        { userId: 'user-1', role: 'HR' },
+        {
+          employeeId: 'emp-1',
+          attendanceDay: '2026-08-25',
+          status: 'PRESENT',
+          checkInAt: '2026-08-25T17:00:00.000Z',
+          checkOutAt: '2026-08-25T08:00:00.000Z'
+        }
+      )
+    ).rejects.toThrow(/on or after check-in/i);
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
+  it('updates the same attendance day without treating the current record as a duplicate', async () => {
+    const record = {
+      id: 'att-1',
+      employeeId: 'emp-1',
+      departmentId: 'dept-1',
+      attendanceDay: new Date('2026-08-25T00:00:00.000Z'),
+      checkInAt: null,
+      checkOutAt: null
+    };
+    const repository = {
+      findByUnique: vi.fn(),
+      create: vi.fn(),
+      listAttendance: vi.fn(),
+      countAttendance: vi.fn(),
+      findById: vi.fn().mockResolvedValue(record),
+      update: vi.fn().mockResolvedValue({ ...record, status: 'PRESENT' }),
+      remove: vi.fn(),
+      summary: vi.fn()
+    };
+
+    const service = new AttendanceService(repository as any);
+    await service.update({ userId: 'user-1', role: 'HR' }, 'att-1', {
+      attendanceDay: '2026-08-25',
+      status: 'PRESENT'
+    });
+
+    expect(repository.findByUnique).toHaveBeenCalledWith('emp-1', expect.any(Date), 'att-1');
+    expect(repository.update).toHaveBeenCalled();
+  });
+
+  it('rejects an update that moves a record onto another attendance day record', async () => {
+    const repository = {
+      findByUnique: vi.fn().mockResolvedValue({ id: 'att-2' }),
+      create: vi.fn(),
+      listAttendance: vi.fn(),
+      countAttendance: vi.fn(),
+      findById: vi.fn().mockResolvedValue({
+        id: 'att-1',
+        employeeId: 'emp-1',
+        departmentId: 'dept-1',
+        attendanceDay: new Date('2026-08-25T00:00:00.000Z'),
+        checkInAt: null,
+        checkOutAt: null
+      }),
+      update: vi.fn(),
+      remove: vi.fn(),
+      summary: vi.fn()
+    };
+
+    const service = new AttendanceService(repository as any);
+    await expect(
+      service.update({ userId: 'user-1', role: 'HR' }, 'att-1', {
+        attendanceDay: '2026-08-26'
+      })
+    ).rejects.toThrow(/already exists/i);
+    expect(repository.update).not.toHaveBeenCalled();
   });
 });

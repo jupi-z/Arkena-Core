@@ -64,6 +64,10 @@ The application checks permissions, not raw role strings, at route level.
 
 Uploaded documents are stored outside the public route tree and only returned through authenticated download endpoints.
 
+## Attendance Invariant
+
+`AttendanceRecord.attendanceDay` is the canonical UTC calendar day and is stored as PostgreSQL `DATE`. A unique constraint on `(employeeId, attendanceDay)` guarantees one record per employee per day. `checkInAt` and `checkOutAt` are separate timestamps; service and request validation reject a checkout before check-in. The migration preserves the earliest legacy record when old timestamp data collides on the same UTC day.
+
 ## Runtime Operations
 
 Operational endpoints now distinguish:
