@@ -85,7 +85,8 @@ const filterParameters = {
   status: { name: 'status', in: 'query', schema: { type: 'string' } },
   action: { name: 'action', in: 'query', schema: { type: 'string' } },
   resource: { name: 'resource', in: 'query', schema: { type: 'string' } },
-  type: { name: 'type', in: 'query', schema: { type: 'string' } }
+  type: { name: 'type', in: 'query', schema: { type: 'string' } },
+  read: { name: 'read', in: 'query', schema: { type: 'boolean' } }
 } as const;
 
 const authErrorResponses = {
@@ -751,7 +752,7 @@ export const openApiSpec = {
       get: {
         tags: ['Users'],
         summary: 'List users',
-        parameters: paginationParameters,
+        parameters: [...paginationParameters, filterParameters.status],
         responses: {
           200: listResponse({ $ref: '#/components/schemas/User' }),
           ...listErrorResponses
@@ -823,7 +824,7 @@ export const openApiSpec = {
       get: {
         tags: ['Departments'],
         summary: 'List departments',
-        parameters: paginationParameters,
+        parameters: [...paginationParameters, filterParameters.status],
         responses: {
           200: listResponse({ $ref: '#/components/schemas/Department' }),
           ...listErrorResponses
@@ -1097,7 +1098,7 @@ export const openApiSpec = {
       get: {
         tags: ['Notifications'],
         summary: 'List notifications',
-        parameters: paginationParameters,
+        parameters: [...paginationParameters, filterParameters.type, filterParameters.read],
         responses: {
           200: listResponse({ $ref: '#/components/schemas/Notification' }),
           ...listErrorResponses

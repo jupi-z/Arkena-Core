@@ -7,10 +7,18 @@ import { NotificationsRepository } from './repository.js';
 export class NotificationsService {
   constructor(private readonly repository = new NotificationsRepository()) {}
 
-  async list(userId: string, query: { page: number; limit: number; sortBy?: string; sortOrder: 'asc' | 'desc' }) {
+  async list(userId: string, query: { page: number; limit: number; search?: string; sortBy?: string; sortOrder: 'asc' | 'desc'; type?: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR' | 'SYSTEM'; read?: boolean }) {
     const where: Prisma.NotificationWhereInput = {
       recipientUserId: userId
     };
+    if (query.type) where.type = query.type;
+    if (query.read !== undefined) where.readAt = query.read ? { not: null } : null;
+    if (query.search) {
+      where.OR = [
+        { title: { contains: query.search, mode: 'insensitive' } },
+        { body: { contains: query.search, mode: 'insensitive' } }
+      ];
+    }
 
     const sortBy = query.sortBy && ['createdAt', 'readAt', 'type'].includes(query.sortBy) ? query.sortBy : 'createdAt';
     const [items, total] = await Promise.all([

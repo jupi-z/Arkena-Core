@@ -34,9 +34,16 @@ describe('UsersService', () => {
     const result = await service.list({
       page: 1,
       limit: 20,
-      sortOrder: 'desc'
+      sortOrder: 'desc',
+      status: 'ACTIVE'
     });
 
+    expect(repository.listUsers).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'ACTIVE' }),
+      0,
+      20,
+      expect.any(Object)
+    );
     expect(result.items[0]).not.toHaveProperty('passwordHash');
     expect(result.items[0]).not.toHaveProperty('refreshTokens');
   });

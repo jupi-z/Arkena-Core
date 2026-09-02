@@ -6,7 +6,7 @@ Last updated: 2026-09-02
 
 - Scope completion: **100%**
 - Production readiness: **99%**
-- Current active workstream: **Authentication throttling and privileged user creation hardening completed**
+- Current active workstream: **List filter contracts and module type boundaries completed**
 - Current task progress: **100%**
 
 ## What Is Done
@@ -33,7 +33,7 @@ Last updated: 2026-09-02
 - Core modules created: users, employees, departments, attendance, documents, notifications, audit, dashboard
 - OpenAPI docs published at `/docs`
 - OpenAPI spec expanded with reusable schemas and endpoint coverage for the core API
-- Unit tests passing: **49 passed, 5 skipped by explicit release-E2E opt-in**
+- Unit tests passing: **55 passed, 5 skipped by explicit release-E2E opt-in**
 - Auth and core service coverage expanded for logout, logout-all, reset flow, forgot-password, profile retrieval, attendance summary, and secure document upload
 - User service responses are sanitized to prevent password hash and refresh token exposure
 - User lifecycle tests cover secure creation, response sanitization and session revocation on suspension
@@ -94,6 +94,8 @@ Last updated: 2026-09-02
 - Document signature validation tests: pass
 - Authentication rate-limit response test: pass
 - Privileged user creation authorization test: pass
+- List filter schema and service tests: pass
+- Dashboard module type boundary: pass
 - Production environment validator: pass
 - Lightweight load check: pass
 - Compose staging config: pass

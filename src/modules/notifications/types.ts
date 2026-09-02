@@ -1,4 +1,12 @@
 import { z } from 'zod';
+import { listQuerySchema } from '../../common/http/query.js';
+
+const booleanQuery = z.enum(['true', 'false']).transform((value) => value === 'true');
+
+export const notificationListQuerySchema = listQuerySchema.extend({
+  type: z.enum(['INFO', 'WARNING', 'SUCCESS', 'ERROR', 'SYSTEM']).optional(),
+  read: booleanQuery.optional()
+});
 
 export const notificationSchema = z.object({
   recipientUserId: z.string().min(1),

@@ -64,6 +64,39 @@ describe('EmployeesService', () => {
     );
   });
 
+  it('applies department and status filters to employee lists', async () => {
+    const repository = {
+      listEmployees: vi.fn().mockResolvedValue([]),
+      countEmployees: vi.fn().mockResolvedValue(0),
+      findById: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      archive: vi.fn()
+    };
+
+    const service = new EmployeesService(repository as any);
+    await service.list(
+      { role: 'ADMIN' },
+      {
+        page: 1,
+        limit: 20,
+        sortOrder: 'desc',
+        departmentId: 'dept-1',
+        status: 'ACTIVE'
+      }
+    );
+
+    expect(repository.listEmployees).toHaveBeenCalledWith(
+      expect.objectContaining({
+        departmentId: 'dept-1',
+        status: 'ACTIVE'
+      }),
+      0,
+      20,
+      expect.any(Object)
+    );
+  });
+
   it('forbids employees from reading another employee profile', async () => {
     const repository = {
       listEmployees: vi.fn(),

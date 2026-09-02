@@ -1,4 +1,9 @@
 import { z } from 'zod';
+import { listQuerySchema } from '../../common/http/query.js';
+
+export const userListQuerySchema = listQuerySchema.extend({
+  status: z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED']).optional()
+});
 
 export const createUserSchema = z.object({
   email: z.string().email(),

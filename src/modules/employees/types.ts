@@ -1,6 +1,12 @@
 import { z } from 'zod';
+import { listQuerySchema } from '../../common/http/query.js';
 
 export const employeeStatusSchema = z.enum(['ACTIVE', 'INACTIVE', 'ON_LEAVE', 'TERMINATED', 'ARCHIVED']);
+
+export const employeeListQuerySchema = listQuerySchema.extend({
+  departmentId: z.string().optional(),
+  status: employeeStatusSchema.optional()
+});
 
 export const employeeSchema = z.object({
   employeeNumber: z.string().min(2),

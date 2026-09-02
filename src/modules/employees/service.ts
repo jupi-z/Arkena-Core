@@ -51,7 +51,7 @@ export class EmployeesService {
     return user.employeeId === employee.id;
   }
 
-  async list(user: { role: RoleName; employeeId?: string | null; departmentId?: string | null }, query: { page: number; limit: number; search?: string; sortBy?: string; sortOrder: 'asc' | 'desc'; departmentId?: string; status?: string }) {
+  async list(user: { role: RoleName; employeeId?: string | null; departmentId?: string | null }, query: { page: number; limit: number; search?: string; sortBy?: string; sortOrder: 'asc' | 'desc'; departmentId?: string; status?: 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE' | 'TERMINATED' | 'ARCHIVED' }) {
     const where: Prisma.EmployeeWhereInput = {};
 
     if (query.search) {
@@ -68,7 +68,7 @@ export class EmployeesService {
     }
 
     if (query.status) {
-      where.status = query.status as any;
+      where.status = query.status;
     }
 
     const sortBy = query.sortBy && ['createdAt', 'firstName', 'lastName', 'hireDate', 'employeeNumber'].includes(query.sortBy) ? query.sortBy : 'createdAt';

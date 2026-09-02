@@ -1,10 +1,11 @@
 import { Prisma, RoleName } from '@prisma/client';
 import { DashboardRepository } from './repository.js';
+import type { DashboardUserScope } from './types.js';
 
 export class DashboardService {
   constructor(private readonly repository = new DashboardRepository()) {}
 
-  private buildScope(user: { role: RoleName; employeeId?: string | null; departmentId?: string | null }) {
+  private buildScope(user: DashboardUserScope) {
     if (['SUPER_ADMIN', 'ADMIN', 'HR'].includes(user.role)) {
       return {
         employeeWhere: {},
@@ -33,7 +34,7 @@ export class DashboardService {
     };
   }
 
-  async overview(user: { role: RoleName; employeeId?: string | null; departmentId?: string | null }) {
+  async overview(user: DashboardUserScope) {
     const [totalEmployees, activeEmployees, inactiveEmployees, departments, todayAttendance, todayLate, recentDocuments] =
       await this.repository.overview(this.buildScope(user));
 
@@ -52,7 +53,7 @@ export class DashboardService {
     };
   }
 
-  async employees(user: { role: RoleName; employeeId?: string | null; departmentId?: string | null }) {
+  async employees(user: DashboardUserScope) {
     const scope = this.buildScope(user);
     const [byStatus, byDepartment] = await this.repository.employeeStats({
       employeeWhere: scope.employeeWhere,
@@ -68,7 +69,7 @@ export class DashboardService {
     };
   }
 
-  async attendance(user: { role: RoleName; employeeId?: string | null; departmentId?: string | null }) {
+  async attendance(user: DashboardUserScope) {
     const byStatus = await this.repository.attendanceStats(this.buildScope(user).attendanceWhere);
     return {
       byStatus
