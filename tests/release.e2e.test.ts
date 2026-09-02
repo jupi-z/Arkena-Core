@@ -377,11 +377,12 @@ e2eDescribe('Release e2e', () => {
 
     const employeeLookupResponse = await request(baseUrl)
       .get('/employees')
-      .set('Authorization', `Bearer ${state.adminSession?.accessToken}`);
+      .set('Authorization', `Bearer ${state.adminSession?.accessToken}`)
+      .query({ search: 'admin.employee@arkena.local' });
 
     expect(employeeLookupResponse.status).toBe(200);
-    const linkedEmployee = employeeLookupResponse.body.data.find((employee: { user?: unknown }) => employee.user);
-    expect(linkedEmployee?.user).toBeDefined();
+    const linkedEmployee = employeeLookupResponse.body.data[0];
+    expect(linkedEmployee.user).toBeDefined();
     expect(linkedEmployee.user).not.toHaveProperty('passwordHash');
     expect(linkedEmployee.user).not.toHaveProperty('refreshTokens');
 

@@ -15,6 +15,8 @@ Last updated: 2026-09-02
 - Domain-based Express/TypeScript backend scaffolded
 - Prisma schema, seed and initial migration in place
 - Auth with JWT access/refresh tokens implemented
+- Refresh rotation preserves token families, records replacement JTIs and revokes a reused family
+- Persisted refresh/reset expirations follow their configured JWT TTLs
 - RBAC permissions model implemented
 - User account creation and secure soft-deactivation implemented
 - Sensitive user status and role changes revoke active refresh-token sessions
@@ -86,6 +88,7 @@ Last updated: 2026-09-02
 - Notification release E2E: pass
 - Department service tests: pass
 - Sensitive user session revocation tests: pass
+- Refresh family rotation and reuse tests: pass
 - Standardized upload error tests: pass
 - Authentication rate-limit response test: pass
 - Privileged user creation authorization test: pass

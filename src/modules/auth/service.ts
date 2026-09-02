@@ -7,6 +7,7 @@ import {
   createAccessToken,
   createRefreshToken,
   createResetToken,
+  getTokenExpiration,
   hashToken,
   randomToken,
   verifyRefreshToken,
@@ -33,9 +34,8 @@ function buildPermissionList(items: Array<{ permission: { code: string } }>): st
 export class AuthService {
   constructor(private readonly repository = new AuthRepository()) {}
 
-  private async issueSession(user: AuthenticatedUser) {
+  private async issueSession(user: AuthenticatedUser, familyId = randomToken()) {
     const permissions = buildPermissionList(await this.repository.getPermissionsForRole(user.role));
-    const familyId = randomToken();
     const jti = randomToken();
     const refreshJti = randomToken();
     const accessToken = createAccessToken({
@@ -50,9 +50,7 @@ export class AuthService {
       jti: refreshJti
     });
     const refreshTokenHash = hashToken(refreshToken);
-    const refreshExpiresAt = new Date();
-
-    refreshExpiresAt.setDate(refreshExpiresAt.getDate() + 30);
+    const refreshExpiresAt = getTokenExpiration(refreshToken);
 
     await this.repository.createRefreshToken({
       jti: refreshJti,
@@ -80,6 +78,7 @@ export class AuthService {
       accessToken,
       refreshToken,
       refreshTokenExpiresAt: refreshExpiresAt.toISOString(),
+      refreshJti,
       user: {
         id: user.id,
         email: user.email,
@@ -109,7 +108,9 @@ export class AuthService {
       status: 'ACTIVE'
     });
 
-    return this.issueSession(user as AuthenticatedUser);
+    const session = await this.issueSession(user as AuthenticatedUser);
+    const { refreshJti: _refreshJti, ...publicSession } = session;
+    return publicSession;
   }
 
   async login(input: { email: string; password: string }) {
@@ -127,7 +128,9 @@ export class AuthService {
       lastLoginAt: new Date()
     });
 
-    return this.issueSession(user as AuthenticatedUser);
+    const session = await this.issueSession(user as AuthenticatedUser);
+    const { refreshJti: _refreshJti, ...publicSession } = session;
+    return publicSession;
   }
 
   async refresh(input: { refreshToken: string }) {
@@ -135,18 +138,23 @@ export class AuthService {
     const hashedToken = hashToken(input.refreshToken);
     const stored = await this.repository.findRefreshTokenByHash(hashedToken);
 
-    if (!stored || stored.revokedAt || stored.expiresAt < new Date() || stored.jti !== tokenPayload.jti) {
+    if (!stored || stored.revokedAt || stored.expiresAt < new Date() || stored.jti !== tokenPayload.jti || stored.familyId !== tokenPayload.familyId) {
+      if (stored?.revokedAt && stored.familyId === tokenPayload.familyId) {
+        await this.repository.revokeRefreshTokensForFamily(stored.familyId);
+      }
       throw unauthorized();
     }
 
-    await this.repository.revokeRefreshTokenByHash(hashedToken, tokenPayload.jti);
     const user = stored.user;
 
     if (!user || user.status !== 'ACTIVE') {
       throw unauthorized();
     }
 
-    return this.issueSession(user as AuthenticatedUser);
+    const session = await this.issueSession(user as AuthenticatedUser, tokenPayload.familyId);
+    await this.repository.revokeRefreshTokenByHash(hashedToken, session.refreshJti);
+    const { refreshJti: _refreshJti, ...publicSession } = session;
+    return publicSession;
   }
 
   async logout(refreshToken: string) {
@@ -190,8 +198,7 @@ export class AuthService {
       jti,
       purpose: 'PASSWORD_RESET'
     });
-    const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 30);
+    const expiresAt = getTokenExpiration(token);
 
     await this.repository.createResetToken({
       user: {
