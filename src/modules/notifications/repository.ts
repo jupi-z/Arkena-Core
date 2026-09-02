@@ -1,16 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../database/prisma.js';
-
-const publicUserSelect = {
-  id: true,
-  email: true,
-  firstName: true,
-  lastName: true,
-  phone: true,
-  jobTitle: true,
-  role: true,
-  status: true
-} satisfies Prisma.UserSelect;
+import { publicUserSelect } from '../../common/security/public-user-select.js';
 
 export class NotificationsRepository {
   listNotifications(where: Prisma.NotificationWhereInput, skip: number, take: number, orderBy: Prisma.NotificationOrderByWithRelationInput) {

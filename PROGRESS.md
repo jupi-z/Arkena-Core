@@ -22,7 +22,7 @@ Last updated: 2026-09-02
 - Privileged account creation is restricted to `SUPER_ADMIN` at the service layer
 - Multer upload failures return standardized API errors, including `413 FILE_TOO_LARGE`
 - Audit records automatically inherit request IP and user-agent metadata when available
-- Audit and notification responses use safe related-user projections without password hashes
+- Employee, attendance, document, audit and notification responses use safe related-user projections without password hashes
 - Notification read actions are scoped to the authenticated recipient
 - Department create/update/delete audit entries include actor and before/after snapshots
 - Resource-level authorization enforced for employee, attendance and document access scopes
@@ -80,6 +80,7 @@ Last updated: 2026-09-02
 - Dashboard scope tests: pass
 - Manager-scoped dashboard release E2E: pass
 - Secure user lifecycle release E2E: pass
+- Related-user projection release E2E: pass
 - Automatic audit request metadata tests: pass
 - Notification scoped read tests: pass
 - Notification release E2E: pass

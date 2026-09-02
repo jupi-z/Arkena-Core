@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../database/prisma.js';
+import { publicUserSelect } from '../../common/security/public-user-select.js';
 
 export class AttendanceRepository {
   listAttendance(where: Prisma.AttendanceRecordWhereInput, skip: number, take: number, orderBy: Prisma.AttendanceRecordOrderByWithRelationInput) {
@@ -15,7 +16,9 @@ export class AttendanceRepository {
           }
         },
         department: true,
-        recordedByUser: true
+        recordedByUser: {
+          select: publicUserSelect
+        }
       }
     });
   }
@@ -34,7 +37,9 @@ export class AttendanceRepository {
           }
         },
         department: true,
-        recordedByUser: true
+        recordedByUser: {
+          select: publicUserSelect
+        }
       }
     });
   }

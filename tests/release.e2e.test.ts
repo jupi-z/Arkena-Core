@@ -375,6 +375,16 @@ e2eDescribe('Release e2e', () => {
     expect(employeeResponse.status).toBe(201);
     state.employeeId = employeeResponse.body.data.id as string;
 
+    const employeeLookupResponse = await request(baseUrl)
+      .get('/employees')
+      .set('Authorization', `Bearer ${state.adminSession?.accessToken}`);
+
+    expect(employeeLookupResponse.status).toBe(200);
+    const linkedEmployee = employeeLookupResponse.body.data.find((employee: { user?: unknown }) => employee.user);
+    expect(linkedEmployee?.user).toBeDefined();
+    expect(linkedEmployee.user).not.toHaveProperty('passwordHash');
+    expect(linkedEmployee.user).not.toHaveProperty('refreshTokens');
+
     const attendancePayloads = [
       {
         attendanceDate: `${currentDay}T08:00:00.000Z`,
@@ -433,6 +443,15 @@ e2eDescribe('Release e2e', () => {
         }
       }
     });
+
+    const attendanceLookupResponse = await request(baseUrl)
+      .get('/attendance')
+      .set('Authorization', `Bearer ${state.adminSession?.accessToken}`)
+      .query({ employeeId: state.employeeId });
+
+    expect(attendanceLookupResponse.status).toBe(200);
+    expect(attendanceLookupResponse.body.data[0].recordedByUser).not.toHaveProperty('passwordHash');
+    expect(attendanceLookupResponse.body.data[0].recordedByUser).not.toHaveProperty('refreshTokens');
   });
 
   it('uploads, downloads, deletes and revokes a secured document', async () => {
@@ -463,6 +482,15 @@ e2eDescribe('Release e2e', () => {
     });
 
     state.documentId = uploadResponse.body.data.id as string;
+
+    const documentLookupResponse = await request(baseUrl)
+      .get(`/documents/${state.documentId}`)
+      .set('Authorization', `Bearer ${state.adminSession?.accessToken}`);
+
+    expect(documentLookupResponse.status).toBe(200);
+    expect(documentLookupResponse.body.data.uploadedByUser).not.toHaveProperty('passwordHash');
+    expect(documentLookupResponse.body.data.uploadedByUser).not.toHaveProperty('refreshTokens');
+    expect(documentLookupResponse.body.data.employee.user).toBeNull();
 
     const dashboardResponse = await request(baseUrl)
       .get('/dashboard/overview')
