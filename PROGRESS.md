@@ -5,9 +5,9 @@ Last updated: 2026-09-02
 ## Global Progress
 
 - Scope completion: **100%**
-- Production readiness: **99%**
-- Current active workstream: **Local release validation green; GitHub Actions promotion pending**
-- Current task progress: **96%**
+- Production readiness: **100%**
+- Current active workstream: **Release v1.0.0 validated on local gates, Docker and GitHub Actions main**
+- Current task progress: **100%**
 
 ## What Is Done
 
@@ -80,6 +80,7 @@ Last updated: 2026-09-02
 - Format check: pass
 - Coverage: pass (lines 63.75%, statements 63.75%, functions 51.21%, branches 63.2%)
 - Vitest: pass
+- GitHub Actions main: pass (test and docker-compose jobs)
 - Prisma schema validation: pass
 - Local boot: pass
 - Docker Compose execution: pass
