@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../database/prisma.js';
+import { publicUserSelect } from '../../common/security/public-user-select.js';
 
 export class EmployeesRepository {
   listEmployees(where: Prisma.EmployeeWhereInput, skip: number, take: number, orderBy: Prisma.EmployeeOrderByWithRelationInput) {
@@ -11,7 +12,9 @@ export class EmployeesRepository {
       include: {
         department: true,
         manager: true,
-        user: true,
+        user: {
+          select: publicUserSelect
+        },
         _count: {
           select: {
             attendance: true,
@@ -33,7 +36,9 @@ export class EmployeesRepository {
       include: {
         department: true,
         manager: true,
-        user: true,
+        user: {
+          select: publicUserSelect
+        },
         attendance: true,
         documents: true
       }

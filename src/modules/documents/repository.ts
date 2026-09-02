@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../database/prisma.js';
+import { publicUserSelect } from '../../common/security/public-user-select.js';
 
 export class DocumentsRepository {
   listDocuments(where: Prisma.DocumentWhereInput, skip: number, take: number, orderBy: Prisma.DocumentOrderByWithRelationInput) {
@@ -14,7 +15,9 @@ export class DocumentsRepository {
             department: true
           }
         },
-        uploadedByUser: true
+        uploadedByUser: {
+          select: publicUserSelect
+        }
       }
     });
   }
@@ -30,10 +33,14 @@ export class DocumentsRepository {
         employee: {
           include: {
             department: true,
-            user: true
+            user: {
+              select: publicUserSelect
+            }
           }
         },
-        uploadedByUser: true
+        uploadedByUser: {
+          select: publicUserSelect
+        }
       }
     });
   }
